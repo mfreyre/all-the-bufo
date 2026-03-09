@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Build Your Own Bufo</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: #16213e;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid #0f3460;
+    flex-shrink: 0;
+  }
+
+  header h1 {
+    font-size: 1.4rem;
+    color: #7ec8a0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .header-actions button {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+
+  .btn-download {
+    background: #7ec8a0;
+    color: #1a1a2e;
+  }
+  .btn-download:hover { background: #5db885; }
+
+  .btn-reset {
+    background: #e74c6f;
+    color: white;
+  }
+  .btn-reset:hover { background: #c93d5c; }
+
+  .app {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* --- Left Sidebar --- */
+  .sidebar {
+    width: 260px;
+    background: #16213e;
+    border-right: 2px solid #0f3460;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 8px;
+    border-bottom: 1px solid #0f3460;
+  }
+
+  .tab {
+    padding: 4px 8px;
+    font-size: 0.7rem;
+    border: 1px solid #0f3460;
+    border-radius: 4px;
+    background: transparent;
+    color: #8899aa;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .tab:hover { background: #0f3460; color: #e0e0e0; }
+
+  .tab.active {
+    background: #7ec8a0;
+    color: #1a1a2e;
+    border-color: #7ec8a0;
+    font-weight: 600;
+  }
+
+  .parts-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    align-content: start;
+  }
+
+  .parts-grid::-webkit-scrollbar { width: 6px; }
+  .parts-grid::-webkit-scrollbar-track { background: #16213e; }
+  .parts-grid::-webkit-scrollbar-thumb { background: #0f3460; border-radius: 3px; }
+
+  .part-thumb {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 2px solid #0f3460;
+    border-radius: 6px;
+    background: #1a1a2e;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    position: relative;
+  }
+
+  .part-thumb:hover {
+    border-color: #7ec8a0;
+    background: #0f3460;
+    transform: scale(1.05);
+  }
+
+  .part-thumb img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+  }
+
+  .part-thumb .emoji-preview {
+    font-size: 28px;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  .part-thumb .part-label {
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    right: 2px;
+    font-size: 0.5rem;
+    text-align: center;
+    color: #8899aa;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1;
+  }
+
+  /* --- Center Canvas --- */
+  .canvas-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .canvas {
+    width: 500px;
+    height: 500px;
+    background: #ffffff;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(126, 200, 160, 0.15);
+    cursor: default;
+  }
+
+  .canvas-checkerboard {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
+      linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
+      linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .placed-piece {
+    position: absolute;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: filter 0.1s;
+  }
+
+  .placed-piece:hover { filter: brightness(1.05); }
+
+  .placed-piece.selected {
+    outline: 2px dashed #7ec8a0;
+    outline-offset: 2px;
+  }
+
+  .placed-piece.dragging {
+    cursor: grabbing;
+    opacity: 0.85;
+  }
+
+  .placed-piece img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+  }
+
+  .placed-piece .emoji-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  /* --- Right Panel --- */
+  .controls {
+    width: 200px;
+    background: #16213e;
+    border-left: 2px solid #0f3460;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .controls h3 {
+    font-size: 0.85rem;
+    color: #7ec8a0;
+    border-bottom: 1px solid #0f3460;
+    padding-bottom: 6px;
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .control-group label {
+    font-size: 0.75rem;
+    color: #8899aa;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .control-row {
+    display: flex;
+    gap: 4px;
+  }
+
+  .ctrl-btn {
+    flex: 1;
+    padding: 6px;
+    border: 1px solid #0f3460;
+    border-radius: 4px;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.15s;
+    text-align: center;
+  }
+
+  .ctrl-btn:hover { background: #0f3460; border-color: #7ec8a0; }
+  .ctrl-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .ctrl-btn.danger { border-color: #e74c6f; color: #e74c6f; }
+  .ctrl-btn.danger:hover { background: #e74c6f; color: white; }
+
+  .layers-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .layers-list::-webkit-scrollbar { width: 4px; }
+  .layers-list::-webkit-scrollbar-thumb { background: #0f3460; border-radius: 2px; }
+
+  .layer-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: background 0.1s;
+    background: #1a1a2e;
+    border: 1px solid transparent;
+  }
+
+  .layer-item:hover { background: #0f3460; }
+
+  .layer-item.active {
+    border-color: #7ec8a0;
+    background: #0f3460;
+  }
+
+  .layer-item img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+
+  .layer-emoji {
+    width: 24px;
+    height: 24px;
+    font-size: 18px;
+    line-height: 24px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .layer-item span {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .no-selection {
+    text-align: center;
+    color: #556677;
+    font-size: 0.75rem;
+    font-style: italic;
+    padding: 20px 0;
+  }
+
+  .size-display {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #7ec8a0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hint {
+    font-size: 0.65rem;
+    color: #556677;
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* toast */
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #7ec8a0;
+    color: #1a1a2e;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: transform 0.3s ease;
+    z-index: 1000;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>&#129418; Build Your Own Bufo</h1>
+  <div class="header-actions">
+    <button class="btn-download" onclick="downloadPNG()">&#128190; PNG</button>
+    <button class="btn-download" onclick="downloadGIF()" style="background:#a07ee8;">&#127916; GIF</button>
+    <button class="btn-reset" onclick="resetCanvas()">&#128465; Reset</button>
+  </div>
+</header>
+
+<div class="app">
+  <!-- Left Sidebar: Parts -->
+  <div class="sidebar">
+    <div class="tabs" id="tabs"></div>
+    <div class="parts-grid" id="partsGrid"></div>
+  </div>
+
+  <!-- Center Canvas -->
+  <div class="canvas-area">
+    <div class="canvas" id="canvas" onclick="onCanvasClick(event)">
+      <div class="canvas-checkerboard"></div>
+    </div>
+  </div>
+
+  <!-- Right Panel: Controls -->
+  <div class="controls">
+    <h3>Selected Piece</h3>
+
+    <div id="selectionInfo">
+      <div class="no-selection">Click a piece to select it</div>
+    </div>
+
+    <div id="selectionControls" style="display:none;">
+      <div class="control-group">
+        <label>Size</label>
+        <div class="size-display" id="sizeDisplay">150px</div>
+        <div class="control-row">
+          <button class="ctrl-btn" onclick="resizePiece(-20)">&#8722; Smaller</button>
+          <button class="ctrl-btn" onclick="resizePiece(20)">&#43; Bigger</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Layer Order</label>
+        <div class="control-row">
+          <button class="ctrl-btn" onclick="moveLayer(-1)">&#9660; Back</button>
+          <button class="ctrl-btn" onclick="moveLayer(1)">&#9650; Front</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Flip</label>
+        <div class="control-row">
+          <button class="ctrl-btn" onclick="flipPiece('h')">&#8596; Horizontal</button>
+          <button class="ctrl-btn" onclick="flipPiece('v')">&#8597; Vertical</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <button class="ctrl-btn" onclick="duplicatePiece()">&#128203; Duplicate</button>
+      </div>
+
+      <div class="control-group">
+        <button class="ctrl-btn danger" onclick="deletePiece()">&#128465; Delete</button>
+      </div>
+    </div>
+
+    <h3>Layers</h3>
+    <div class="layers-list" id="layersList"></div>
+
+    <div class="hint">
+      Scroll wheel on piece to resize<br>
+      Click canvas background to deselect
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ PARTS CATALOG ============
+// Items prefixed with "emoji:" are emoji characters; everything else is an image file.
+const PARTS = {
+  "Base Bodies": [
+    "bufo-bufo.png",
+    "bufo-naked.png",
+    "bufo-blank-stare.png",
+    "bufo-smile.png",
+    "bufo-happy.png",
+    "bufo-stare.png",
+    "bufo-ambiently-existing.png",
+    "blockheads-bufo.png",
+    "bufo-all-good.png",
+    "bufo-likes-that-idea.png",
+    "sad-bufo.png",
+    "bufo-0-10.png",
+  ],
+  "Expressions": [
+    "bufo-happy.png",
+    "bufo-sad.png",
+    "bufo-cry.png",
+    "bufo-angry.gif",
+    "bufo-worried.png",
+    "bufo-confused.gif",
+    "bufo-excited.gif",
+    "bufo-dead.png",
+    "bufo-panic.png",
+    "bufo-nervous.gif",
+    "bufo-regret.png",
+    "bufo-stare.png",
+    "bufo-big-eyes-stare.png",
+    "bufo-awkward-smile.png",
+    "bufo-laugh-xd.png",
+    "bufo-disappointed.png",
+    "bufo-very-angry.png",
+    "bufo-pretty-dang-sad.png",
+    "bufo-mild-panic.png",
+    "bufo-on-fire-but-still-excited.png",
+    "bufo-eye-twitch.gif",
+    "bufo-excited-but-sad.png",
+    "bufo-tries-not-to-laugh.png",
+    "bufo-whatever.png",
+  ],
+  "Eyes & Face": [
+    "bufo-eyes.png",
+    "bufo-eyeballs.png",
+    "bufo-eyeballs-bloodshot.png",
+    "bufo-basic-blush.png",
+    "bufo-blush.gif",
+    "bufo-grimaces-with-eyebrows.png",
+    "bufo-sussy-eyebrows.gif",
+    "bufo-shaking-eyes.gif",
+    "bufo-yay-awkward-eyes.gif",
+    "bufo-laser-eyes.jpg",
+    "double-bufo-sideeye.png",
+    "bufo-sees-what-you-did-there.png",
+    "bufo-smile.png",
+  ],
+  "Hands & Gestures": [
+    "bufo-hands.png",
+    "bufo-raised-hand.png",
+    "bufo-wave.gif",
+    "bufo-clap.gif",
+    "bufo-clap-hd.gif",
+    "bufo-fistbump.gif",
+    "bufo-dab.png",
+    "bufo-pointing-at-you.png",
+    "bufo-pointing-down-there.gif",
+    "bufo-pointing-over-there.gif",
+    "bufo-pointing-right-there.gif",
+    "bufo-pointing-up-there.gif",
+    "bufo-hands-on-hips-annoyed.png",
+    "bufo-chefkiss.png",
+    "bufo-chefkiss-with-hat.png",
+    "bufo-tries-to-hug-you-but-his-arms-are-too-short.png",
+  ],
+  "Headwear": [
+    "bufo-hat.png",
+    "bufo-tophat.png",
+    "bufo-hardhat.png",
+    "bufo-fedora.png",
+    "bufo-tips-hat.png",
+    "heavy-is-the-bufo-that-wears-the-crown.png",
+    "bufo-wears-a-paper-crown.png",
+    "bufo-tin-foil-hat.gif",
+    "bufo-tin-foil-hat2.png",
+    "bufo-pumpkin-head.png",
+    "bufo-claus.png",
+    "bufo-chef.png",
+    "bufo-angel.png",
+    "bufo-farmer.png",
+  ],
+  "Eyewear & Accessories": [
+    "bufo-glasses.png",
+    "bufo-anime-glasses.png",
+    "bufo-cool-glasses.gif",
+    "bufo-monocle.png",
+    "bufo-headphones.png",
+    "bufo-airpods.png",
+    "bufo-adidas.png",
+    "bufo-blanket.png",
+    "bufo-cozy-blanky.png",
+  ],
+  "Props & Weapons": [
+    "bufo-knife.png",
+    "bufo-sword.png",
+    "bufo-knife-cries-right.png",
+    "bufo-american-football.png",
+    "bufo-baseball.png",
+    "bufo-pumpkin.png",
+    "bufo-halloween-pumpkin.png",
+  ],
+  "Bufo Offers": [
+    "bufo-offers-nothing.png",
+    "bufo-offers-coffee.png",
+    "bufo-offers-a-beer.png",
+    "bufo-offers-you-a-pint-m8.png",
+    "bufo-offers-a-cookie.png",
+    "bufo-offers-a-cake.png",
+    "bufo-offers-a-taco.gif",
+    "bufo-offers-boba.png",
+    "bufo-offers-a-banana-in-these-trying-times.png",
+    "bufo-offers-avocado.png",
+    "bufo-offers-pancakes.png",
+    "bufo-offers-a-burger.png",
+    "bufo-offers-hotdog.png",
+    "bufo-offers-a-piece-of-cake.png",
+    "bufo-offers-watermelon.png",
+    "bufo-offers-a-flan.png",
+    "bufo-offers-stroopwafel.png",
+    "bufo-offers-an-egg-in-this-trying-time.png",
+    "bufo-offers-a-bagel.png",
+    "bufo-offers-falafel.png",
+    "bufo-offers-tim-tams.png",
+    "bufo-offers-golden-handcuffs.png",
+    "bufo-offers-help.png",
+    "bufo-offers-peace.png",
+    "bufo-offers-bufo.png",
+    "bufo-offers-ai.png",
+    "bufo-offers-bitcoin.png",
+    "bufo-offers-moneybag.png",
+    "bufo-offers-an-idea.png",
+    "bufo-offers-a-book.png",
+    "bufo-offers-blanket.png",
+    "bufo-offers-you-the-world.png",
+    "bufo-offers-you-the-moon.png",
+  ],
+  "Emotional Scenes": [
+    "bufo-crying.gif",
+    "bufo-crying-stop.gif",
+    "bufo-sad-rain.gif",
+    "bufo-sad-swinging.gif",
+    "bufo-sad-vibe.gif",
+    "bufo-knife-crying.gif",
+    "bufo-lol-cry.gif",
+    "bufo-is-panicking.gif",
+    "bufo-happy-hour.gif",
+    "bufo-very-angry-intesifies.gif",
+    "bufo-awkward-smile-nod.gif",
+    "bufo-wants-to-buy-his-crypto.gif",
+    "bufo-aight-imma-head-out.gif",
+    "bufo-adding-bugs-to-the-code.gif",
+    "proud-bufo-is-excited.gif",
+    "bufo-amaze.gif",
+  ],
+  "Special Bufos": [
+    "bufo-android.png",
+    "bronze-bufo.png",
+    "buff-bufo.png",
+    "australian-bufo.png",
+    "breaking-bufo.png",
+    "confused-math-bufo.png",
+    "live-laugh-bufo.png",
+    "add-bufo.png",
+    "bufo-2022.png",
+    "bufo-ack.png",
+    "bufo-actually.png",
+    "bufo-am-i.png",
+    "bufo-coffee-happy.png",
+    "awesomebufo.png",
+    "ghost-bufo-of-future-past-is-disappointed-in-your-lack-of-foresight.png",
+    "bufo-achieving-coding-flow.png",
+  ],
+  // ---- EMOJI CATEGORIES ----
+  "\ud83d\ude00 Smileys": [
+    "emoji:\ud83d\ude00","emoji:\ud83d\ude03","emoji:\ud83d\ude04","emoji:\ud83d\ude01","emoji:\ud83d\ude06","emoji:\ud83d\ude05","emoji:\ud83d\ude02","emoji:\ud83e\udd23","emoji:\ud83d\ude0a","emoji:\ud83d\ude07",
+    "emoji:\ud83d\ude42","emoji:\ud83d\ude43","emoji:\ud83d\ude09","emoji:\ud83d\ude0c","emoji:\ud83d\ude0d","emoji:\ud83e\udd70","emoji:\ud83d\ude18","emoji:\ud83d\ude17","emoji:\ud83d\ude19","emoji:\ud83d\ude1a",
+    "emoji:\ud83d\ude0b","emoji:\ud83d\ude1b","emoji:\ud83d\ude1c","emoji:\ud83e\udd2a","emoji:\ud83d\ude1d","emoji:\ud83e\udd11","emoji:\ud83e\udd17","emoji:\ud83e\udd2d","emoji:\ud83e\udd2b","emoji:\ud83e\udd14",
+    "emoji:\ud83e\udd10","emoji:\ud83e\udd28","emoji:\ud83d\ude10","emoji:\ud83d\ude11","emoji:\ud83d\ude36","emoji:\ud83d\ude0f","emoji:\ud83d\ude12","emoji:\ud83d\ude44","emoji:\ud83d\ude2c","emoji:\ud83e\udd25",
+    "emoji:\ud83d\ude0c","emoji:\ud83d\ude14","emoji:\ud83d\ude2a","emoji:\ud83e\udd24","emoji:\ud83d\ude34","emoji:\ud83d\ude37","emoji:\ud83e\udd12","emoji:\ud83e\udd15","emoji:\ud83e\udd22","emoji:\ud83e\udd2e",
+    "emoji:\ud83e\udd27","emoji:\ud83e\udd75","emoji:\ud83e\udd76","emoji:\ud83e\udd74","emoji:\ud83d\ude35","emoji:\ud83e\udd2f","emoji:\ud83e\udd20","emoji:\ud83e\udd73","emoji:\ud83e\udd78","emoji:\ud83d\ude0e",
+    "emoji:\ud83e\uddd0","emoji:\ud83d\ude15","emoji:\ud83d\ude1f","emoji:\ud83d\ude41","emoji:\ud83d\ude2e","emoji:\ud83d\ude2f","emoji:\ud83d\ude32","emoji:\ud83d\ude33","emoji:\ud83e\udd7a","emoji:\ud83d\ude26",
+    "emoji:\ud83d\ude27","emoji:\ud83d\ude28","emoji:\ud83d\ude30","emoji:\ud83d\ude25","emoji:\ud83d\ude22","emoji:\ud83d\ude2d","emoji:\ud83d\ude31","emoji:\ud83d\ude16","emoji:\ud83d\ude23","emoji:\ud83d\ude1e",
+    "emoji:\ud83d\ude13","emoji:\ud83d\ude29","emoji:\ud83d\ude24","emoji:\ud83d\ude20","emoji:\ud83d\ude21","emoji:\ud83e\udd2c","emoji:\ud83d\ude08","emoji:\ud83d\udc7f","emoji:\ud83d\udc80","emoji:\u2620\ufe0f",
+    "emoji:\ud83d\udca9","emoji:\ud83e\udd21","emoji:\ud83d\udc79","emoji:\ud83d\udc7a","emoji:\ud83d\udc7b","emoji:\ud83d\udc7d","emoji:\ud83d\udc7e","emoji:\ud83e\udd16","emoji:\ud83d\ude3a","emoji:\ud83d\ude38",
+    "emoji:\ud83d\ude39","emoji:\ud83d\ude3b","emoji:\ud83d\ude3c","emoji:\ud83d\ude3d","emoji:\ud83d\ude40","emoji:\ud83d\ude3f","emoji:\ud83d\ude3e","emoji:\ud83d\ude48","emoji:\ud83d\ude49","emoji:\ud83d\ude4a",
+  ],
+  "\ud83d\udc4b Hands": [
+    "emoji:\ud83d\udc4b","emoji:\ud83e\udd1a","emoji:\ud83d\udd90\ufe0f","emoji:\u270b","emoji:\ud83d\udd96","emoji:\ud83d\udc4c","emoji:\ud83e\udd0c","emoji:\ud83e\udd0f","emoji:\u270c\ufe0f","emoji:\ud83e\udd1e",
+    "emoji:\ud83e\udd1f","emoji:\ud83e\udd18","emoji:\ud83e\udd19","emoji:\ud83d\udc48","emoji:\ud83d\udc49","emoji:\ud83d\udc46","emoji:\ud83d\udc47","emoji:\u261d\ufe0f","emoji:\ud83d\udc4d","emoji:\ud83d\udc4e",
+    "emoji:\u270a","emoji:\ud83d\udc4a","emoji:\ud83e\udd1b","emoji:\ud83e\udd1c","emoji:\ud83d\udc4f","emoji:\ud83d\ude4c","emoji:\ud83d\udc50","emoji:\ud83e\udd32","emoji:\ud83e\udd1d","emoji:\ud83d\ude4f",
+    "emoji:\u270d\ufe0f","emoji:\ud83d\udc85","emoji:\ud83e\udd33","emoji:\ud83d\udcaa","emoji:\ud83e\uddb5","emoji:\ud83e\uddb6","emoji:\ud83d\udc42","emoji:\ud83d\udc43","emoji:\ud83e\udde0","emoji:\ud83e\uddb7",
+    "emoji:\ud83e\uddb4","emoji:\ud83d\udc40","emoji:\ud83d\udc41\ufe0f","emoji:\ud83d\udc45","emoji:\ud83d\udc44",
+  ],
+  "\u2764\ufe0f Hearts": [
+    "emoji:\u2764\ufe0f","emoji:\ud83e\udde1","emoji:\ud83d\udc9b","emoji:\ud83d\udc9a","emoji:\ud83d\udc99","emoji:\ud83d\udc9c","emoji:\ud83e\udd0e","emoji:\ud83d\udda4","emoji:\ud83e\udd0d","emoji:\ud83d\udc94",
+    "emoji:\u2763\ufe0f","emoji:\ud83d\udc95","emoji:\ud83d\udc9e","emoji:\ud83d\udc93","emoji:\ud83d\udc97","emoji:\ud83d\udc96","emoji:\ud83d\udc98","emoji:\ud83d\udc9d","emoji:\ud83d\udc9f","emoji:\u2764\ufe0f\u200d\ud83d\udd25",
+    "emoji:\u2764\ufe0f\u200d\ud83e\ude79","emoji:\ud83d\udc8b","emoji:\ud83d\udc90","emoji:\ud83c\udf39","emoji:\ud83c\udf3a","emoji:\ud83c\udf3b","emoji:\ud83c\udf3c","emoji:\ud83c\udf37","emoji:\ud83c\udf38","emoji:\ud83e\uddea",
+  ],
+  "\ud83d\udc36 Animals": [
+    "emoji:\ud83d\udc36","emoji:\ud83d\udc31","emoji:\ud83d\udc2d","emoji:\ud83d\udc39","emoji:\ud83d\udc30","emoji:\ud83e\udd8a","emoji:\ud83d\udc3b","emoji:\ud83d\udc3c","emoji:\ud83d\udc28","emoji:\ud83d\udc2f",
+    "emoji:\ud83e\udd81","emoji:\ud83d\udc2e","emoji:\ud83d\udc37","emoji:\ud83d\udc38","emoji:\ud83d\udc35","emoji:\ud83d\ude48","emoji:\ud83d\ude49","emoji:\ud83d\ude4a","emoji:\ud83d\udc12","emoji:\ud83d\udc14",
+    "emoji:\ud83d\udc27","emoji:\ud83d\udc26","emoji:\ud83d\udc24","emoji:\ud83d\udc23","emoji:\ud83d\udc25","emoji:\ud83e\udd86","emoji:\ud83e\udd85","emoji:\ud83e\udd89","emoji:\ud83e\udda4","emoji:\ud83e\udd9a",
+    "emoji:\ud83e\udd9c","emoji:\ud83d\udc22","emoji:\ud83d\udc0d","emoji:\ud83e\udd8e","emoji:\ud83d\udc19","emoji:\ud83e\udd91","emoji:\ud83e\udd90","emoji:\ud83e\udda0","emoji:\ud83d\udc1f","emoji:\ud83d\udc20",
+    "emoji:\ud83d\udc21","emoji:\ud83e\udd88","emoji:\ud83d\udc2c","emoji:\ud83d\udc33","emoji:\ud83d\udc0b","emoji:\ud83e\udd8d","emoji:\ud83d\udc18","emoji:\ud83e\udd9b","emoji:\ud83e\udd8f","emoji:\ud83d\udc2a",
+    "emoji:\ud83e\udd92","emoji:\ud83d\udc3a","emoji:\ud83e\udd93","emoji:\ud83d\udc34","emoji:\ud83e\udd84","emoji:\ud83d\udc1b","emoji:\ud83d\udc1c","emoji:\ud83d\udc1d","emoji:\ud83e\udeb2","emoji:\ud83d\udc1e",
+    "emoji:\ud83e\udd97","emoji:\ud83e\udda2","emoji:\ud83e\udda9","emoji:\ud83e\udd94","emoji:\ud83e\udd83","emoji:\ud83e\udd9e","emoji:\ud83e\udda1","emoji:\ud83e\uddab","emoji:\ud83d\udc0c","emoji:\ud83e\udeb3",
+    "emoji:\ud83e\udeb0","emoji:\ud83e\udeb1","emoji:\ud83e\udd8b","emoji:\ud83d\udc1a","emoji:\ud83d\udc1b",
+  ],
+  "\ud83c\udf54 Food": [
+    "emoji:\ud83c\udf4e","emoji:\ud83c\udf4a","emoji:\ud83c\udf4b","emoji:\ud83c\udf4c","emoji:\ud83c\udf49","emoji:\ud83c\udf47","emoji:\ud83c\udf53","emoji:\ud83e\uded0","emoji:\ud83c\udf51","emoji:\ud83c\udf52",
+    "emoji:\ud83c\udf4d","emoji:\ud83e\udd5d","emoji:\ud83e\udd6d","emoji:\ud83c\udf46","emoji:\ud83e\udd51","emoji:\ud83e\udd66","emoji:\ud83e\udd52","emoji:\ud83c\udf36\ufe0f","emoji:\ud83c\udf3d","emoji:\ud83e\udd55",
+    "emoji:\ud83e\uddc4","emoji:\ud83e\uddc5","emoji:\ud83e\udd54","emoji:\ud83c\udf60","emoji:\ud83e\udd50","emoji:\ud83c\udf5e","emoji:\ud83e\udd56","emoji:\ud83e\uddc0","emoji:\ud83c\udf56","emoji:\ud83c\udf57",
+    "emoji:\ud83e\udd69","emoji:\ud83c\udf54","emoji:\ud83c\udf5f","emoji:\ud83c\udf55","emoji:\ud83c\udf2d","emoji:\ud83e\udd6a","emoji:\ud83c\udf2e","emoji:\ud83c\udf2f","emoji:\ud83e\uded4","emoji:\ud83e\udd59",
+    "emoji:\ud83e\uddc6","emoji:\ud83e\udd5a","emoji:\ud83c\udf73","emoji:\ud83e\udd58","emoji:\ud83c\udf72","emoji:\ud83e\uded5","emoji:\ud83e\udd63","emoji:\ud83e\udd57","emoji:\ud83c\udf7f","emoji:\ud83e\uddc8",
+    "emoji:\ud83c\udf71","emoji:\ud83c\udf58","emoji:\ud83c\udf59","emoji:\ud83c\udf5a","emoji:\ud83c\udf5b","emoji:\ud83c\udf5c","emoji:\ud83c\udf5d","emoji:\ud83c\udf63","emoji:\ud83c\udf64","emoji:\ud83c\udf65",
+    "emoji:\ud83e\udd6e","emoji:\ud83c\udf66","emoji:\ud83c\udf67","emoji:\ud83c\udf68","emoji:\ud83c\udf69","emoji:\ud83c\udf6a","emoji:\ud83c\udf82","emoji:\ud83c\udf70","emoji:\ud83e\uddc1","emoji:\ud83e\udd67",
+    "emoji:\ud83c\udf6b","emoji:\ud83c\udf6c","emoji:\ud83c\udf6d","emoji:\ud83c\udf6e","emoji:\ud83c\udf6f","emoji:\ud83c\udf7c","emoji:\ud83e\udd5b","emoji:\u2615","emoji:\ud83e\uded6","emoji:\ud83c\udf75",
+    "emoji:\ud83c\udf76","emoji:\ud83c\udf7e","emoji:\ud83c\udf77","emoji:\ud83c\udf78","emoji:\ud83c\udf79","emoji:\ud83c\udf7a","emoji:\ud83c\udf7b","emoji:\ud83e\udd42","emoji:\ud83e\udd43","emoji:\ud83e\uddc9",
+  ],
+  "\u26bd Activities": [
+    "emoji:\u26bd","emoji:\ud83c\udfc0","emoji:\ud83c\udfc8","emoji:\u26be","emoji:\ud83e\udd4e","emoji:\ud83c\udfbe","emoji:\ud83c\udfd0","emoji:\ud83c\udfc9","emoji:\ud83e\udd4f","emoji:\ud83c\udfb1",
+    "emoji:\ud83c\udfd3","emoji:\ud83c\udff8","emoji:\ud83c\udfd2","emoji:\ud83e\udd4d","emoji:\ud83c\udfd1","emoji:\ud83c\udfcf","emoji:\ud83e\udd45","emoji:\u26f3","emoji:\ud83e\udd3f","emoji:\ud83c\udfa3",
+    "emoji:\ud83e\udd4a","emoji:\ud83e\udd4b","emoji:\ud83c\udfbd","emoji:\ud83d\udeb4","emoji:\ud83c\udfc6","emoji:\ud83e\udd47","emoji:\ud83e\udd48","emoji:\ud83e\udd49","emoji:\ud83c\udfc5","emoji:\ud83c\udfab",
+    "emoji:\ud83c\udfa0","emoji:\ud83c\udfa1","emoji:\ud83c\udfa2","emoji:\ud83c\udfa8","emoji:\ud83c\udfac","emoji:\ud83c\udfa4","emoji:\ud83c\udfa7","emoji:\ud83c\udfb5","emoji:\ud83c\udfb6","emoji:\ud83c\udfb8",
+    "emoji:\ud83c\udfb9","emoji:\ud83c\udfba","emoji:\ud83c\udfbb","emoji:\ud83e\udd41","emoji:\ud83c\udfaf","emoji:\ud83c\udfae","emoji:\ud83c\udfb2","emoji:\ud83e\udde9","emoji:\ud83c\udfa8","emoji:\ud83e\uddf5",
+  ],
+  "\u2708\ufe0f Travel": [
+    "emoji:\ud83d\ude97","emoji:\ud83d\ude95","emoji:\ud83d\ude99","emoji:\ud83d\ude8c","emoji:\ud83d\ude8e","emoji:\ud83c\udfce\ufe0f","emoji:\ud83d\ude91","emoji:\ud83d\ude92","emoji:\ud83d\ude93","emoji:\ud83d\ude94",
+    "emoji:\ud83d\udeb2","emoji:\ud83d\udef5","emoji:\ud83d\ude82","emoji:\ud83d\ude84","emoji:\u2708\ufe0f","emoji:\ud83d\udee9\ufe0f","emoji:\ud83d\ude80","emoji:\ud83d\udef8","emoji:\ud83d\udea2","emoji:\u26f5",
+    "emoji:\ud83c\udfd4\ufe0f","emoji:\ud83c\udfdd\ufe0f","emoji:\ud83c\udfd6\ufe0f","emoji:\ud83c\udfde\ufe0f","emoji:\ud83c\udfdf\ufe0f","emoji:\ud83c\udfe0","emoji:\ud83c\udfe2","emoji:\ud83c\udfe5","emoji:\ud83c\udfe8","emoji:\u26ea",
+    "emoji:\ud83d\udd4c","emoji:\ud83d\udd4d","emoji:\ud83c\udfef","emoji:\ud83c\udff0","emoji:\ud83d\uddfc","emoji:\ud83d\uddfd","emoji:\ud83c\udf03","emoji:\ud83c\udf05","emoji:\ud83c\udf04","emoji:\ud83c\udf06",
+    "emoji:\ud83c\udf07","emoji:\ud83c\udf09","emoji:\ud83c\udf0c","emoji:\ud83c\udf0b","emoji:\ud83c\udf0d","emoji:\ud83c\udf0e","emoji:\ud83c\udf0f","emoji:\ud83e\udded","emoji:\ud83c\udf1d","emoji:\ud83c\udf1e",
+  ],
+  "\ud83d\udca1 Objects": [
+    "emoji:\ud83d\udcf1","emoji:\ud83d\udcbb","emoji:\ud83d\udcbd","emoji:\ud83d\udcbe","emoji:\ud83d\udcbf","emoji:\ud83d\udcc0","emoji:\ud83c\udfa5","emoji:\ud83d\udcf7","emoji:\ud83d\udcf8","emoji:\ud83d\udcf9",
+    "emoji:\ud83d\udcfa","emoji:\ud83d\udcfb","emoji:\ud83d\udce1","emoji:\ud83d\udd26","emoji:\ud83d\udca1","emoji:\ud83d\udd0b","emoji:\ud83d\udd0c","emoji:\ud83d\udcda","emoji:\ud83d\udcd6","emoji:\ud83d\udcdd",
+    "emoji:\u270f\ufe0f","emoji:\ud83d\udd8a\ufe0f","emoji:\ud83d\udd8b\ufe0f","emoji:\ud83d\udccc","emoji:\ud83d\udcce","emoji:\u2702\ufe0f","emoji:\ud83d\udd12","emoji:\ud83d\udd13","emoji:\ud83d\udd11","emoji:\ud83d\udee0\ufe0f",
+    "emoji:\ud83d\udd28","emoji:\ud83e\ude93","emoji:\ud83d\udd27","emoji:\ud83d\udd29","emoji:\ud83d\udd2e","emoji:\ud83e\uddf2","emoji:\ud83d\udc8e","emoji:\ud83d\udcb0","emoji:\ud83d\udcb3","emoji:\ud83d\udcb5",
+    "emoji:\u2709\ufe0f","emoji:\ud83d\udce6","emoji:\ud83d\udce8","emoji:\ud83d\udcee","emoji:\ud83d\udce9","emoji:\ud83c\udf81","emoji:\ud83c\udf88","emoji:\ud83c\udf89","emoji:\ud83c\udf8a","emoji:\ud83c\udf90",
+    "emoji:\ud83e\uddf8","emoji:\ud83d\udd2d","emoji:\ud83d\udd2c","emoji:\ud83e\uddea","emoji:\ud83e\uddeb","emoji:\ud83e\uddec","emoji:\ud83d\udc8a","emoji:\ud83e\ude7a","emoji:\ud83e\uddf4","emoji:\ud83e\uddf9",
+  ],
+  "\u2b50 Symbols": [
+    "emoji:\u2b50","emoji:\ud83c\udf1f","emoji:\ud83d\udcab","emoji:\u2728","emoji:\ud83d\udd25","emoji:\ud83d\udca5","emoji:\ud83c\udf08","emoji:\u2600\ufe0f","emoji:\ud83c\udf24\ufe0f","emoji:\u26c5",
+    "emoji:\ud83c\udf27\ufe0f","emoji:\u26a1","emoji:\u2744\ufe0f","emoji:\ud83c\udf2c\ufe0f","emoji:\ud83c\udf2a\ufe0f","emoji:\ud83c\udf0a","emoji:\ud83d\udca7","emoji:\ud83d\udca6","emoji:\u2603\ufe0f","emoji:\u26c4",
+    "emoji:\u2714\ufe0f","emoji:\u274c","emoji:\u2757","emoji:\u2753","emoji:\u203c\ufe0f","emoji:\u2049\ufe0f","emoji:\ud83d\udcaf","emoji:\ud83d\udd1e","emoji:\ud83c\udd97","emoji:\ud83c\udd95",
+    "emoji:\ud83c\udd99","emoji:\ud83c\udd92","emoji:\ud83c\udd98","emoji:\u26a0\ufe0f","emoji:\u267b\ufe0f","emoji:\u267e\ufe0f","emoji:\ud83d\udfe5","emoji:\ud83d\udfe7","emoji:\ud83d\udfe8","emoji:\ud83d\udfe9",
+    "emoji:\ud83d\udfe6","emoji:\ud83d\udfe3","emoji:\ud83d\udfe0","emoji:\u26ab","emoji:\u26aa","emoji:\ud83d\udd34","emoji:\ud83d\udd35","emoji:\ud83d\udfe2","emoji:\ud83d\udfe1","emoji:\ud83d\udfe4",
+    "emoji:\u25aa\ufe0f","emoji:\u25ab\ufe0f","emoji:\u25fc\ufe0f","emoji:\u25fb\ufe0f","emoji:\u25fe","emoji:\u25fd","emoji:\ud83d\udd36","emoji:\ud83d\udd37","emoji:\ud83d\udd38","emoji:\ud83d\udd39",
+  ],
+  "\ud83c\udff3\ufe0f Flags": [
+    "emoji:\ud83c\udff3\ufe0f","emoji:\ud83c\udff4","emoji:\ud83c\udff3\ufe0f\u200d\ud83c\udf08","emoji:\ud83c\udff4\u200d\u2620\ufe0f","emoji:\ud83c\udde6\ud83c\uddf7","emoji:\ud83c\udde6\ud83c\uddfa","emoji:\ud83c\udde7\ud83c\uddf7","emoji:\ud83c\udde8\ud83c\udde6","emoji:\ud83c\udde8\ud83c\uddf3","emoji:\ud83c\udde8\ud83c\uddf4",
+    "emoji:\ud83c\udde9\ud83c\uddea","emoji:\ud83c\uddea\ud83c\uddf8","emoji:\ud83c\uddeb\ud83c\uddf7","emoji:\ud83c\uddec\ud83c\udde7","emoji:\ud83c\uddee\ud83c\uddf3","emoji:\ud83c\uddee\ud83c\uddf9","emoji:\ud83c\uddef\ud83c\uddf5","emoji:\ud83c\uddf0\ud83c\uddf7","emoji:\ud83c\uddf2\ud83c\uddfd","emoji:\ud83c\uddf3\ud83c\uddf1",
+    "emoji:\ud83c\uddf5\ud83c\uddea","emoji:\ud83c\uddf5\ud83c\uddf1","emoji:\ud83c\uddf5\ud83c\uddf9","emoji:\ud83c\uddf7\ud83c\uddfa","emoji:\ud83c\uddfa\ud83c\uddf8","emoji:\ud83c\uddff\ud83c\udde6","emoji:\ud83c\uddf9\ud83c\uddf7","emoji:\ud83c\uddf8\ud83c\uddea","emoji:\ud83c\udde8\ud83c\udded","emoji:\ud83c\uddf9\ud83c\udded",
+  ],
+  "\ud83e\udd2f Misc Emoji": [
+    "emoji:\ud83d\udc51","emoji:\ud83c\udf93","emoji:\ud83e\udde2","emoji:\ud83c\udfa9","emoji:\ud83d\udc52","emoji:\ud83e\udde3","emoji:\ud83d\udc53","emoji:\ud83e\udd7d","emoji:\ud83e\ude70","emoji:\ud83d\udc54",
+    "emoji:\ud83d\udc55","emoji:\ud83d\udc57","emoji:\ud83d\udc58","emoji:\ud83e\udde4","emoji:\ud83e\udde5","emoji:\ud83e\udde6","emoji:\ud83d\udc5f","emoji:\ud83d\udc5e","emoji:\ud83e\udd7e","emoji:\ud83e\udd7f",
+    "emoji:\ud83d\udc60","emoji:\ud83d\udc61","emoji:\ud83e\ude74","emoji:\ud83d\udc62","emoji:\ud83d\udc5c","emoji:\ud83c\udf92","emoji:\ud83d\udc51","emoji:\ud83d\udc8d","emoji:\ud83d\udc84","emoji:\ud83d\udc8b",
+    "emoji:\ud83c\udf83","emoji:\ud83c\udf84","emoji:\ud83c\udf86","emoji:\ud83c\udf87","emoji:\ud83e\udde8","emoji:\ud83c\udf8e","emoji:\ud83c\udf8f","emoji:\ud83e\udde7","emoji:\ud83c\udf8b","emoji:\ud83c\udf91",
+    "emoji:\ud83e\udde8","emoji:\ud83c\udfae","emoji:\ud83e\ude84","emoji:\ud83e\uddff","emoji:\ud83e\ude86","emoji:\ud83e\uddf1","emoji:\ud83e\ude83","emoji:\ud83e\ude85","emoji:\ud83e\ude87","emoji:\ud83e\udea9",
+  ],
+};
+
+const IMG_BASE = "../all-the-bufo/";
+
+function isEmoji(src) { return src.startsWith("emoji:"); }
+function emojiChar(src) { return src.slice(6); }
+function pieceLabel(src) {
+  if (isEmoji(src)) return emojiChar(src);
+  return src.replace("bufo-","").replace("bufo_","").replace(/\.(png|gif|jpg)$/,"").replace(/-/g," ");
+}
+
+// ============ STATE ============
+let pieces = []; // { id, src, x, y, w, h, flipH, flipV, el }
+let selectedId = null;
+let nextId = 1;
+let dragState = null;
+
+// ============ INIT ============
+function init() {
+  buildTabs();
+  switchTab(Object.keys(PARTS)[0]);
+  document.addEventListener("keydown", onKeyDown);
+}
+
+function buildTabs() {
+  const tabsEl = document.getElementById("tabs");
+  Object.keys(PARTS).forEach((cat, i) => {
+    const btn = document.createElement("button");
+    btn.className = "tab";
+    btn.textContent = cat;
+    btn.onclick = () => switchTab(cat);
+    btn.dataset.cat = cat;
+    tabsEl.appendChild(btn);
+  });
+}
+
+function switchTab(cat) {
+  document.querySelectorAll(".tab").forEach(t => {
+    t.classList.toggle("active", t.dataset.cat === cat);
+  });
+  const grid = document.getElementById("partsGrid");
+  grid.innerHTML = "";
+  PARTS[cat].forEach(item => {
+    const div = document.createElement("div");
+    div.className = "part-thumb";
+    div.onclick = () => addPiece(item);
+    div.title = pieceLabel(item);
+
+    if (isEmoji(item)) {
+      const span = document.createElement("span");
+      span.className = "emoji-preview";
+      span.textContent = emojiChar(item);
+      div.appendChild(span);
+    } else {
+      const img = document.createElement("img");
+      img.src = IMG_BASE + item;
+      img.alt = item;
+      img.loading = "lazy";
+      div.appendChild(img);
+
+      const label = document.createElement("div");
+      label.className = "part-label";
+      label.textContent = pieceLabel(item);
+      div.appendChild(label);
+    }
+
+    grid.appendChild(div);
+  });
+}
+
+// ============ PIECE MANAGEMENT ============
+function addPiece(src) {
+  const id = nextId++;
+  const canvas = document.getElementById("canvas");
+  const size = isEmoji(src) ? 80 : 150;
+  const x = (500 - size) / 2;
+  const y = (500 - size) / 2;
+
+  const el = document.createElement("div");
+  el.className = "placed-piece";
+  el.dataset.id = id;
+  el.style.left = x + "px";
+  el.style.top = y + "px";
+  el.style.width = size + "px";
+  el.style.height = size + "px";
+  el.style.zIndex = pieces.length + 1;
+
+  if (isEmoji(src)) {
+    const span = document.createElement("span");
+    span.className = "emoji-content";
+    span.textContent = emojiChar(src);
+    span.style.fontSize = Math.round(size * 0.8) + "px";
+    el.appendChild(span);
+  } else {
+    const img = document.createElement("img");
+    img.src = IMG_BASE + src;
+    img.draggable = false;
+    el.appendChild(img);
+  }
+
+  el.addEventListener("mousedown", e => startDrag(e, id));
+  el.addEventListener("touchstart", e => startDrag(e, id), { passive: false });
+  el.addEventListener("wheel", e => onWheelResize(e, id), { passive: false });
+  el.addEventListener("click", e => { e.stopPropagation(); selectPiece(id); });
+
+  canvas.appendChild(el);
+
+  const piece = { id, src, x, y, w: size, h: size, flipH: false, flipV: false, el };
+  pieces.push(piece);
+  selectPiece(id);
+  updateLayers();
+  showToast("Added " + pieceLabel(src));
+}
+
+function selectPiece(id) {
+  selectedId = id;
+  document.querySelectorAll(".placed-piece").forEach(el => {
+    el.classList.toggle("selected", parseInt(el.dataset.id) === id);
+  });
+  updateSelectionUI();
+  updateLayers();
+}
+
+function deselectAll() {
+  selectedId = null;
+  document.querySelectorAll(".placed-piece.selected").forEach(el => {
+    el.classList.remove("selected");
+  });
+  updateSelectionUI();
+  updateLayers();
+}
+
+function getSelected() {
+  return pieces.find(p => p.id === selectedId) || null;
+}
+
+function updateSelectionUI() {
+  const info = document.getElementById("selectionInfo");
+  const ctrls = document.getElementById("selectionControls");
+  const piece = getSelected();
+  if (piece) {
+    const lbl = pieceLabel(piece.src);
+    const fontSize = isEmoji(piece.src) ? "1.4rem" : "0.75rem";
+    info.innerHTML = '<div style="text-align:center;font-size:' + fontSize + ';color:#7ec8a0;padding:4px 0;">' + lbl + '</div>';
+    ctrls.style.display = "flex";
+    ctrls.style.flexDirection = "column";
+    ctrls.style.gap = "10px";
+    document.getElementById("sizeDisplay").textContent = Math.round(piece.w) + "px";
+  } else {
+    info.innerHTML = '<div class="no-selection">Click a piece to select it</div>';
+    ctrls.style.display = "none";
+  }
+}
+
+function updateLayers() {
+  const list = document.getElementById("layersList");
+  list.innerHTML = "";
+  // Show layers in reverse order (top layer first)
+  [...pieces].reverse().forEach(p => {
+    const div = document.createElement("div");
+    div.className = "layer-item" + (p.id === selectedId ? " active" : "");
+    div.onclick = () => selectPiece(p.id);
+
+    if (isEmoji(p.src)) {
+      const em = document.createElement("span");
+      em.className = "layer-emoji";
+      em.textContent = emojiChar(p.src);
+      div.appendChild(em);
+    } else {
+      const img = document.createElement("img");
+      img.src = IMG_BASE + p.src;
+      div.appendChild(img);
+    }
+
+    const span = document.createElement("span");
+    span.textContent = pieceLabel(p.src);
+    div.appendChild(span);
+
+    list.appendChild(div);
+  });
+}
+
+// ============ DRAG ============
+function startDrag(e, id) {
+  e.preventDefault();
+  selectPiece(id);
+  const piece = getSelected();
+  if (!piece) return;
+
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  const canvas = document.getElementById("canvas");
+  const rect = canvas.getBoundingClientRect();
+
+  dragState = {
+    id,
+    startMouseX: clientX,
+    startMouseY: clientY,
+    startPieceX: piece.x,
+    startPieceY: piece.y,
+    canvasRect: rect,
+  };
+
+  piece.el.classList.add("dragging");
+  document.addEventListener("mousemove", onDrag);
+  document.addEventListener("mouseup", stopDrag);
+  document.addEventListener("touchmove", onDrag, { passive: false });
+  document.addEventListener("touchend", stopDrag);
+}
+
+function onDrag(e) {
+  if (!dragState) return;
+  e.preventDefault();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+  const dx = clientX - dragState.startMouseX;
+  const dy = clientY - dragState.startMouseY;
+
+  const piece = pieces.find(p => p.id === dragState.id);
+  if (!piece) return;
+
+  piece.x = dragState.startPieceX + dx;
+  piece.y = dragState.startPieceY + dy;
+  piece.el.style.left = piece.x + "px";
+  piece.el.style.top = piece.y + "px";
+}
+
+function stopDrag() {
+  if (dragState) {
+    const piece = pieces.find(p => p.id === dragState.id);
+    if (piece) piece.el.classList.remove("dragging");
+  }
+  dragState = null;
+  document.removeEventListener("mousemove", onDrag);
+  document.removeEventListener("mouseup", stopDrag);
+  document.removeEventListener("touchmove", onDrag);
+  document.removeEventListener("touchend", stopDrag);
+}
+
+// ============ RESIZE ============
+function resizePiece(delta) {
+  const piece = getSelected();
+  if (!piece) return;
+  const newSize = Math.max(30, Math.min(500, piece.w + delta));
+  const diff = newSize - piece.w;
+  piece.w = newSize;
+  piece.h = newSize;
+  piece.x -= diff / 2;
+  piece.y -= diff / 2;
+  piece.el.style.width = newSize + "px";
+  piece.el.style.height = newSize + "px";
+  piece.el.style.left = piece.x + "px";
+  piece.el.style.top = piece.y + "px";
+  if (isEmoji(piece.src)) {
+    const span = piece.el.querySelector(".emoji-content");
+    if (span) span.style.fontSize = Math.round(newSize * 0.8) + "px";
+  }
+  document.getElementById("sizeDisplay").textContent = Math.round(newSize) + "px";
+}
+
+function onWheelResize(e, id) {
+  e.preventDefault();
+  selectPiece(id);
+  resizePiece(e.deltaY < 0 ? 15 : -15);
+}
+
+// ============ LAYER ORDERING ============
+function moveLayer(dir) {
+  const piece = getSelected();
+  if (!piece) return;
+  const idx = pieces.indexOf(piece);
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= pieces.length) return;
+  pieces.splice(idx, 1);
+  pieces.splice(newIdx, 0, piece);
+  // Update z-indexes
+  pieces.forEach((p, i) => { p.el.style.zIndex = i + 1; });
+  updateLayers();
+}
+
+// ============ FLIP ============
+function flipPiece(axis) {
+  const piece = getSelected();
+  if (!piece) return;
+  if (axis === "h") piece.flipH = !piece.flipH;
+  if (axis === "v") piece.flipV = !piece.flipV;
+  const scaleX = piece.flipH ? -1 : 1;
+  const scaleY = piece.flipV ? -1 : 1;
+  piece.el.style.transform = `scale(${scaleX}, ${scaleY})`;
+}
+
+// ============ DUPLICATE ============
+function duplicatePiece() {
+  const piece = getSelected();
+  if (!piece) return;
+  const id = nextId++;
+  const canvas = document.getElementById("canvas");
+
+  const el = document.createElement("div");
+  el.className = "placed-piece";
+  el.dataset.id = id;
+  el.style.left = (piece.x + 20) + "px";
+  el.style.top = (piece.y + 20) + "px";
+  el.style.width = piece.w + "px";
+  el.style.height = piece.h + "px";
+  el.style.zIndex = pieces.length + 1;
+  const scaleX = piece.flipH ? -1 : 1;
+  const scaleY = piece.flipV ? -1 : 1;
+  el.style.transform = `scale(${scaleX}, ${scaleY})`;
+
+  if (isEmoji(piece.src)) {
+    const span = document.createElement("span");
+    span.className = "emoji-content";
+    span.textContent = emojiChar(piece.src);
+    span.style.fontSize = Math.round(piece.w * 0.8) + "px";
+    el.appendChild(span);
+  } else {
+    const img = document.createElement("img");
+    img.src = IMG_BASE + piece.src;
+    img.draggable = false;
+    el.appendChild(img);
+  }
+
+  el.addEventListener("mousedown", e => startDrag(e, id));
+  el.addEventListener("touchstart", e => startDrag(e, id), { passive: false });
+  el.addEventListener("wheel", e => onWheelResize(e, id), { passive: false });
+  el.addEventListener("click", e => { e.stopPropagation(); selectPiece(id); });
+
+  canvas.appendChild(el);
+  const newPiece = { id, src: piece.src, x: piece.x + 20, y: piece.y + 20, w: piece.w, h: piece.h, flipH: piece.flipH, flipV: piece.flipV, el };
+  pieces.push(newPiece);
+  selectPiece(id);
+  updateLayers();
+}
+
+// ============ DELETE ============
+function deletePiece() {
+  const piece = getSelected();
+  if (!piece) return;
+  piece.el.remove();
+  pieces = pieces.filter(p => p.id !== piece.id);
+  pieces.forEach((p, i) => { p.el.style.zIndex = i + 1; });
+  deselectAll();
+}
+
+// ============ KEYBOARD ============
+function onKeyDown(e) {
+  if (e.key === "Delete" || e.key === "Backspace") {
+    if (selectedId && document.activeElement === document.body) {
+      e.preventDefault();
+      deletePiece();
+    }
+  }
+  if (e.key === "Escape") deselectAll();
+  if (e.key === "=" || e.key === "+") resizePiece(15);
+  if (e.key === "-") resizePiece(-15);
+}
+
+// ============ CANVAS CLICK (deselect) ============
+function onCanvasClick(e) {
+  if (e.target === document.getElementById("canvas") ||
+      e.target.classList.contains("canvas-checkerboard")) {
+    deselectAll();
+  }
+}
+
+// ============ RENDER TO CANVAS ============
+function renderToCanvas(callback) {
+  if (pieces.length === 0) {
+    showToast("Nothing to download! Add some pieces first.");
+    return;
+  }
+
+  const canvasEl = document.createElement("canvas");
+  canvasEl.width = 500;
+  canvasEl.height = 500;
+  const ctx = canvasEl.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, 500, 500);
+
+  // Collect image pieces that need loading
+  const imgPieces = pieces.filter(p => !isEmoji(p.src));
+  let loaded = 0;
+  const total = imgPieces.length;
+
+  function drawAll() {
+    pieces.forEach(p => {
+      ctx.save();
+      const cx = p.x + p.w / 2;
+      const cy = p.y + p.h / 2;
+      ctx.translate(cx, cy);
+      ctx.scale(p.flipH ? -1 : 1, p.flipV ? -1 : 1);
+      if (isEmoji(p.src)) {
+        ctx.font = Math.round(p.w * 0.8) + "px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(emojiChar(p.src), 0, 0);
+      } else if (p._loadedImg) {
+        ctx.drawImage(p._loadedImg, -p.w / 2, -p.h / 2, p.w, p.h);
+      }
+      ctx.restore();
+    });
+    callback(canvasEl);
+  }
+
+  if (total === 0) { drawAll(); return; }
+
+  imgPieces.forEach(piece => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => { loaded++; if (loaded === total) drawAll(); };
+    img.onerror = () => { loaded++; if (loaded === total) drawAll(); };
+    img.src = IMG_BASE + piece.src;
+    piece._loadedImg = img;
+  });
+}
+
+// ============ DOWNLOAD PNG ============
+function downloadPNG() {
+  renderToCanvas(canvasEl => {
+    canvasEl.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "my-bufo.png";
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("Downloaded my-bufo.png!");
+    });
+  });
+}
+
+// ============ DOWNLOAD GIF ============
+// Uses a simple approach: captures the current canvas div as animated GIF frames
+// by reading each placed GIF's frames via a hidden canvas. For simplicity, we
+// capture multiple snapshots of the live DOM and encode them.
+function downloadGIF() {
+  if (pieces.length === 0) {
+    showToast("Nothing to download! Add some pieces first.");
+    return;
+  }
+
+  showToast("Capturing GIF frames...");
+
+  // We'll capture the canvas area as a series of frames using the DOM rendering
+  const hasAnimated = pieces.some(p => !isEmoji(p.src) && /\.gif$/i.test(p.src));
+  const frameCount = hasAnimated ? 20 : 1;
+  const frameDelay = 100; // ms between frames in output GIF
+
+  // Deselect to remove dashed border
+  const prevSelected = selectedId;
+  deselectAll();
+
+  // Use the simple GIF encoder (inline, no dependencies)
+  captureFramesAndEncode(frameCount, frameDelay).then(blob => {
+    if (prevSelected) selectPiece(prevSelected);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "my-bufo.gif";
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("Downloaded my-bufo.gif!");
+  }).catch(err => {
+    if (prevSelected) selectPiece(prevSelected);
+    console.error(err);
+    showToast("GIF export failed, try PNG instead");
+  });
+}
+
+async function captureFramesAndEncode(frameCount, delay) {
+  const canvasDiv = document.getElementById("canvas");
+  const w = 500, h = 500;
+
+  // Capture frames by drawing the DOM canvas div to an offscreen canvas
+  const offscreen = document.createElement("canvas");
+  offscreen.width = w;
+  offscreen.height = h;
+  const octx = offscreen.getContext("2d");
+
+  const frames = [];
+  for (let i = 0; i < frameCount; i++) {
+    // Render current state
+    octx.fillStyle = "#ffffff";
+    octx.fillRect(0, 0, w, h);
+    for (const p of pieces) {
+      octx.save();
+      const cx = p.x + p.w / 2;
+      const cy = p.y + p.h / 2;
+      octx.translate(cx, cy);
+      octx.scale(p.flipH ? -1 : 1, p.flipV ? -1 : 1);
+      if (isEmoji(p.src)) {
+        octx.font = Math.round(p.w * 0.8) + "px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif";
+        octx.textAlign = "center";
+        octx.textBaseline = "middle";
+        octx.fillText(emojiChar(p.src), 0, 0);
+      } else {
+        // Draw the current frame of the img element in the DOM
+        const imgEl = p.el.querySelector("img");
+        if (imgEl && imgEl.complete && imgEl.naturalWidth > 0) {
+          try { octx.drawImage(imgEl, -p.w / 2, -p.h / 2, p.w, p.h); } catch(e) {}
+        }
+      }
+      octx.restore();
+    }
+    frames.push(octx.getImageData(0, 0, w, h));
+    // Wait a bit so animated GIFs advance to next frame
+    if (frameCount > 1) await new Promise(r => setTimeout(r, delay));
+  }
+
+  // Encode frames to GIF using minimal inline encoder
+  return encodeGIF(frames, w, h, delay);
+}
+
+// ============ MINIMAL GIF ENCODER (no dependencies) ============
+function encodeGIF(frames, width, height, delay) {
+  const buf = [];
+  function writeByte(b) { buf.push(b & 0xff); }
+  function writeShort(s) { writeByte(s & 0xff); writeByte((s >> 8) & 0xff); }
+  function writeStr(s) { for (let i = 0; i < s.length; i++) writeByte(s.charCodeAt(i)); }
+  function writeBytes(arr) { for (let i = 0; i < arr.length; i++) buf.push(arr[i]); }
+
+  // Build a global 256-color palette using median cut (simplified: use a fixed web-safe-ish palette)
+  // For quality we quantize each frame's pixels to a 256-color palette
+  const palette = buildGlobalPalette(frames);
+  const palSize = 256;
+  const palBits = 8;
+
+  // Header
+  writeStr("GIF89a");
+  writeShort(width);
+  writeShort(height);
+  writeByte(0x87); // GCT flag, 8 bits color res, 256 colors
+  writeByte(0);    // bg color index
+  writeByte(0);    // pixel aspect ratio
+
+  // Global Color Table
+  for (let i = 0; i < 256; i++) {
+    writeByte(palette[i * 3]);
+    writeByte(palette[i * 3 + 1]);
+    writeByte(palette[i * 3 + 2]);
+  }
+
+  // Netscape extension for looping
+  writeByte(0x21); writeByte(0xff); writeByte(0x0b);
+  writeStr("NETSCAPE2.0");
+  writeByte(3); writeByte(1); writeShort(0); writeByte(0);
+
+  for (const frame of frames) {
+    // Graphic Control Extension
+    writeByte(0x21); writeByte(0xf9); writeByte(4);
+    writeByte(0x00); // no transparency
+    writeShort(Math.round(delay / 10)); // delay in 1/100s
+    writeByte(0); // transparent color index
+    writeByte(0);
+
+    // Image Descriptor
+    writeByte(0x2c);
+    writeShort(0); writeShort(0);
+    writeShort(width); writeShort(height);
+    writeByte(0); // no local color table
+
+    // Quantize frame pixels to palette indices
+    const indices = quantizeFrame(frame, palette);
+
+    // LZW compress
+    const minCodeSize = palBits;
+    writeByte(minCodeSize);
+    const compressed = lzwEncode(indices, minCodeSize);
+    // Write sub-blocks
+    let pos = 0;
+    while (pos < compressed.length) {
+      const chunkSize = Math.min(255, compressed.length - pos);
+      writeByte(chunkSize);
+      for (let j = 0; j < chunkSize; j++) buf.push(compressed[pos + j]);
+      pos += chunkSize;
+    }
+    writeByte(0); // block terminator
+  }
+
+  writeByte(0x3b); // trailer
+  return new Blob([new Uint8Array(buf)], { type: "image/gif" });
+}
+
+function buildGlobalPalette(frames) {
+  // Sample pixels from all frames to build a representative palette
+  // Use a simplified uniform quantization for speed
+  const pal = new Uint8Array(256 * 3);
+  let idx = 0;
+  // 6x6x6 color cube = 216 colors
+  for (let r = 0; r < 6; r++)
+    for (let g = 0; g < 6; g++)
+      for (let b = 0; b < 6; b++) {
+        pal[idx * 3] = Math.round(r * 255 / 5);
+        pal[idx * 3 + 1] = Math.round(g * 255 / 5);
+        pal[idx * 3 + 2] = Math.round(b * 255 / 5);
+        idx++;
+      }
+  // Fill remaining 40 slots with grays
+  for (let i = 0; i < 40; i++) {
+    const v = Math.round(i * 255 / 39);
+    pal[idx * 3] = v;
+    pal[idx * 3 + 1] = v;
+    pal[idx * 3 + 2] = v;
+    idx++;
+  }
+  return pal;
+}
+
+function quantizeFrame(imageData, palette) {
+  const d = imageData.data;
+  const n = d.length / 4;
+  const indices = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2];
+    // Map to 6x6x6 cube index
+    const ri = Math.min(5, Math.round(r * 5 / 255));
+    const gi = Math.min(5, Math.round(g * 5 / 255));
+    const bi = Math.min(5, Math.round(b * 5 / 255));
+    indices[i] = ri * 36 + gi * 6 + bi;
+  }
+  return indices;
+}
+
+function lzwEncode(indices, minCodeSize) {
+  const clearCode = 1 << minCodeSize;
+  const eoiCode = clearCode + 1;
+  let codeSize = minCodeSize + 1;
+  let nextCode = eoiCode + 1;
+  const maxCode = 4096;
+
+  const output = [];
+  let bitBuf = 0, bitCount = 0;
+
+  function emit(code) {
+    bitBuf |= (code << bitCount);
+    bitCount += codeSize;
+    while (bitCount >= 8) {
+      output.push(bitBuf & 0xff);
+      bitBuf >>= 8;
+      bitCount -= 8;
+    }
+  }
+
+  // Init code table
+  let table = new Map();
+  function resetTable() {
+    table.clear();
+    for (let i = 0; i < clearCode; i++) table.set(String(i), i);
+    nextCode = eoiCode + 1;
+    codeSize = minCodeSize + 1;
+  }
+
+  resetTable();
+  emit(clearCode);
+
+  if (indices.length === 0) { emit(eoiCode); if (bitCount > 0) output.push(bitBuf & 0xff); return output; }
+
+  let current = String(indices[0]);
+  for (let i = 1; i < indices.length; i++) {
+    const next = current + "," + indices[i];
+    if (table.has(next)) {
+      current = next;
+    } else {
+      emit(table.get(current));
+      if (nextCode < maxCode) {
+        table.set(next, nextCode++);
+        if (nextCode > (1 << codeSize) && codeSize < 12) codeSize++;
+      } else {
+        emit(clearCode);
+        resetTable();
+      }
+      current = String(indices[i]);
+    }
+  }
+  emit(table.get(current));
+  emit(eoiCode);
+  if (bitCount > 0) output.push(bitBuf & 0xff);
+  return output;
+}
+
+// ============ RESET ============
+function resetCanvas() {
+  if (pieces.length === 0) return;
+  if (!confirm("Clear all pieces?")) return;
+  pieces.forEach(p => p.el.remove());
+  pieces = [];
+  selectedId = null;
+  updateSelectionUI();
+  updateLayers();
+  showToast("Canvas cleared!");
+}
+
+// ============ TOAST ============
+function showToast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.classList.remove("show"), 2000);
+}
+
+// ============ GO ============
+init();
+</script>
+</body>
+</html>
