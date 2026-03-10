@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bufo Tools</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    min-height: 100vh;
+  }
+
+  header {
+    background: #16213e;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid #0f3460;
+  }
+
+  header h1 {
+    font-size: 1.4rem;
+    color: #7ec8a0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  header h1 img {
+    width: 32px;
+    height: 32px;
+    image-rendering: pixelated;
+  }
+
+  .back-btn {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: #444;
+    color: #fff;
+    transition: background 0.15s;
+  }
+
+  .back-btn:hover { background: #666; }
+
+  /* ---- Screen 1: Template Selection ---- */
+  #screen-select {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 30px 20px;
+  }
+
+  #screen-select h2 {
+    text-align: center;
+    color: #7ec8a0;
+    margin-bottom: 6px;
+    font-size: 1.3rem;
+  }
+
+  #screen-select p {
+    text-align: center;
+    color: #999;
+    margin-bottom: 24px;
+    font-size: 0.9rem;
+  }
+
+  .template-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+  }
+
+  .template-card {
+    background: #222244;
+    border: 2px solid #333;
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+
+  .template-card:hover {
+    border-color: #7ec8a0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(126, 200, 160, 0.2);
+  }
+
+  .template-card img {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    margin-bottom: 8px;
+  }
+
+  .template-card .label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #ccc;
+  }
+
+  /* ---- Screen 2: Maker ---- */
+  #screen-maker {
+    display: none;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .maker-layout {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .canvas-section {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .canvas-wrap {
+    width: 256px;
+    height: 256px;
+    border: 2px solid #444;
+    border-radius: 8px;
+    background: #111;
+    position: relative;
+    overflow: hidden;
+    cursor: crosshair;
+  }
+
+  .canvas-wrap canvas {
+    width: 256px;
+    height: 256px;
+    image-rendering: pixelated;
+  }
+
+  .controls {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .controls label {
+    font-size: 0.8rem;
+    color: #aaa;
+  }
+
+  .controls input[type="range"] {
+    width: 100%;
+    accent-color: #7ec8a0;
+  }
+
+  .modifier-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .modifier-row label {
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .modifier-row input[type="checkbox"] {
+    accent-color: #7ec8a0;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: background 0.15s;
+  }
+
+  .btn-download {
+    background: #4CAF50;
+    color: white;
+  }
+
+  .btn-download:hover { background: #5db885; }
+
+  .btn-upload {
+    background: #6a5acd;
+    color: white;
+  }
+
+  .btn-upload:hover { background: #7b6bd8; }
+
+  .picker-section {
+    flex: 1;
+    min-width: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .emoji-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .emoji-tab {
+    padding: 4px 8px;
+    border: 1px solid #444;
+    border-radius: 6px;
+    background: #222;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.15s;
+  }
+
+  .emoji-tab:hover { border-color: #7ec8a0; }
+  .emoji-tab.active { background: #7ec8a0; color: #111; border-color: #7ec8a0; }
+
+  .emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+    gap: 4px;
+    max-height: 300px;
+    overflow-y: auto;
+    background: #1a1a30;
+    border-radius: 8px;
+    padding: 8px;
+  }
+
+  .emoji-cell {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.1s;
+  }
+
+  .emoji-cell:hover { background: #333; }
+
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>
+    <img src="./all-the-bufo/bufo-offers-bufo.png" alt="bufo">
+    Bufo Tools
+  </h1>
+  <button class="back-btn" id="headerBack" style="display:none" onclick="showSelect()">Back</button>
+</header>
+
+<!-- Screen 1: Template Selection -->
+<div id="screen-select">
+  <h2>Pick a Template</h2>
+  <p>Choose a bufo template to customize</p>
+  <div class="template-grid" id="templateGrid"></div>
+</div>
+
+<!-- Screen 2: Maker -->
+<div id="screen-maker">
+  <div class="maker-layout">
+    <div class="canvas-section">
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="canvas" width="128" height="128"></canvas>
+      </div>
+      <div class="controls">
+        <label>Item Size: <span id="sizeLabel">40</span>px</label>
+        <input type="range" id="sizeSlider" min="10" max="120" value="40" oninput="onSizeChange(this.value)">
+        <div class="modifier-row" id="modifiers" style="display:none">
+          <label><input type="checkbox" id="modCrying" onchange="render()"> Crying</label>
+          <label><input type="checkbox" id="modAngry" onchange="render()"> Angry</label>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-upload" onclick="document.getElementById('fileInput').click()">Upload Image</button>
+          <button class="btn btn-download" onclick="downloadPNG()">Download PNG</button>
+          <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="onFileUpload(event)">
+        </div>
+      </div>
+    </div>
+    <div class="picker-section">
+      <div class="emoji-tabs" id="emojiTabs"></div>
+      <div class="emoji-grid" id="emojiGrid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ TEMPLATE CONFIG ============
+const TEMPLATES = [
+  {
+    name: "Offers",
+    base: "bufo-offers-nothing.png",
+    preview: "bufo-offers-bufo.png",
+    itemLayer: "behind",
+    itemX: 75, itemY: 50, itemSize: 40,
+    modifiers: true,
+  },
+  {
+    name: "Wears",
+    base: "bufo-naked.png",
+    preview: "bufo-tophat.png",
+    itemLayer: "above",
+    itemX: 45, itemY: 10, itemSize: 50,
+    modifiers: false,
+  },
+  {
+    name: "Approves",
+    base: "bufo-thumbsup.png",
+    preview: "bufo-approve.png",
+    itemLayer: "above",
+    itemX: 70, itemY: 10, itemSize: 50,
+    modifiers: false,
+  },
+  {
+    name: "Reflects",
+    base: "be-the-bufo-you-want-to-see.png",
+    preview: "be-the-bufo-you-want-to-see.png",
+    itemLayer: "behind",
+    itemX: 85, itemY: 30, itemSize: 45,
+    modifiers: false,
+  },
+  {
+    name: "Drinks",
+    base: "bufo-drinks-from-the-fire-hose.png",
+    preview: "bufo-boba.png",
+    itemLayer: "behind",
+    itemX: 10, itemY: 40, itemSize: 50,
+    modifiers: false,
+  },
+  {
+    name: "Wields",
+    base: "bufo-knife.png",
+    preview: "bufo-knife.png",
+    itemLayer: "behind",
+    itemX: 75, itemY: 30, itemSize: 45,
+    modifiers: false,
+  },
+  {
+    name: "Blows Mind",
+    base: "bufo-mindblown.png",
+    preview: "bufo-mindblown.png",
+    itemLayer: "behind",
+    itemX: 50, itemY: 5, itemSize: 40,
+    modifiers: false,
+  },
+  {
+    name: "Rides",
+    base: "bufo-bufo.png",
+    preview: "bufo-rocket.png",
+    itemLayer: "above",
+    itemX: 30, itemY: 40, itemSize: 60,
+    modifiers: false,
+  },
+  {
+    name: "Babysits",
+    base: "bufo-naked.png",
+    preview: "bufo-babysits-an-urgent-ticket.png",
+    itemLayer: "behind",
+    itemX: 50, itemY: 60, itemSize: 40,
+    modifiers: false,
+  },
+  {
+    name: "Prays",
+    base: "bufo-pray.png",
+    preview: "bufo-prays-to-nvidia.png",
+    itemLayer: "behind",
+    itemX: 50, itemY: 10, itemSize: 45,
+    modifiers: false,
+  },
+  {
+    name: "Thinks About",
+    base: "bufo-thinks-about.png",
+    preview: "bufo-thinks-about.png",
+    itemLayer: "behind",
+    itemX: 90, itemY: 30, itemSize: 35,
+    modifiers: false,
+  },
+];
+
+// ============ EMOJI DATA ============
+const EMOJI_CATEGORIES = {
+  "\u{1F600} Smileys": [
+    "\u{1F600}","\u{1F603}","\u{1F604}","\u{1F601}","\u{1F606}","\u{1F605}","\u{1F602}","\u{1F923}","\u{1F60A}","\u{1F607}",
+    "\u{1F642}","\u{1F643}","\u{1F609}","\u{1F60C}","\u{1F60D}","\u{1F970}","\u{1F618}","\u{1F617}","\u{1F619}","\u{1F61A}",
+    "\u{1F60B}","\u{1F61B}","\u{1F61C}","\u{1F92A}","\u{1F61D}","\u{1F911}","\u{1F917}","\u{1F92D}","\u{1F92B}","\u{1F914}",
+    "\u{1F910}","\u{1F928}","\u{1F610}","\u{1F611}","\u{1F636}","\u{1F60F}","\u{1F612}","\u{1F644}","\u{1F62C}","\u{1F925}",
+    "\u{1F634}","\u{1F637}","\u{1F912}","\u{1F915}","\u{1F922}","\u{1F92E}","\u{1F927}","\u{1F975}","\u{1F976}","\u{1F974}",
+    "\u{1F635}","\u{1F92F}","\u{1F920}","\u{1F973}","\u{1F978}","\u{1F60E}","\u{1F9D0}","\u{1F615}","\u{1F61F}","\u{1F641}",
+    "\u{1F62E}","\u{1F62F}","\u{1F632}","\u{1F633}","\u{1F97A}","\u{1F626}","\u{1F627}","\u{1F628}","\u{1F630}","\u{1F625}",
+    "\u{1F622}","\u{1F62D}","\u{1F631}","\u{1F616}","\u{1F623}","\u{1F61E}","\u{1F613}","\u{1F629}","\u{1F624}","\u{1F620}",
+    "\u{1F621}","\u{1F92C}","\u{1F608}","\u{1F47F}","\u{1F480}","\u{2620}\u{FE0F}","\u{1F4A9}","\u{1F921}","\u{1F479}","\u{1F47A}",
+    "\u{1F47B}","\u{1F47D}","\u{1F47E}","\u{1F916}","\u{1F63A}","\u{1F638}","\u{1F639}","\u{1F63B}","\u{1F63C}","\u{1F63D}",
+  ],
+  "\u{1F44B} Hands": [
+    "\u{1F44B}","\u{1F91A}","\u{1F590}\u{FE0F}","\u{270B}","\u{1F596}","\u{1F44C}","\u{1F90C}","\u{1F90F}","\u{270C}\u{FE0F}","\u{1F91E}",
+    "\u{1F91F}","\u{1F918}","\u{1F919}","\u{1F448}","\u{1F449}","\u{1F446}","\u{1F447}","\u{261D}\u{FE0F}","\u{1F44D}","\u{1F44E}",
+    "\u{270A}","\u{1F44A}","\u{1F91B}","\u{1F91C}","\u{1F44F}","\u{1F64C}","\u{1F450}","\u{1F932}","\u{1F91D}","\u{1F64F}",
+    "\u{270D}\u{FE0F}","\u{1F485}","\u{1F933}","\u{1F4AA}","\u{1F9B5}","\u{1F9B6}","\u{1F442}","\u{1F443}","\u{1F9E0}","\u{1F9B7}",
+  ],
+  "\u{2764}\u{FE0F} Hearts": [
+    "\u{2764}\u{FE0F}","\u{1F9E1}","\u{1F49B}","\u{1F49A}","\u{1F499}","\u{1F49C}","\u{1F90E}","\u{1F5A4}","\u{1F90D}","\u{1F494}",
+    "\u{2763}\u{FE0F}","\u{1F495}","\u{1F49E}","\u{1F493}","\u{1F497}","\u{1F496}","\u{1F498}","\u{1F49D}","\u{1F49F}","\u{1F48B}",
+    "\u{1F490}","\u{1F339}","\u{1F33A}","\u{1F33B}","\u{1F33C}","\u{1F337}","\u{1F338}","\u{1F9EA}",
+  ],
+  "\u{1F436} Animals": [
+    "\u{1F436}","\u{1F431}","\u{1F42D}","\u{1F439}","\u{1F430}","\u{1F98A}","\u{1F43B}","\u{1F43C}","\u{1F428}","\u{1F42F}",
+    "\u{1F981}","\u{1F42E}","\u{1F437}","\u{1F438}","\u{1F435}","\u{1F648}","\u{1F649}","\u{1F64A}","\u{1F412}","\u{1F414}",
+    "\u{1F427}","\u{1F426}","\u{1F424}","\u{1F423}","\u{1F425}","\u{1F986}","\u{1F985}","\u{1F989}","\u{1F9A4}","\u{1F99A}",
+    "\u{1F99C}","\u{1F422}","\u{1F40D}","\u{1F98E}","\u{1F419}","\u{1F991}","\u{1F990}","\u{1F9A0}","\u{1F41F}","\u{1F420}",
+    "\u{1F421}","\u{1F988}","\u{1F42C}","\u{1F433}","\u{1F40B}","\u{1F98D}","\u{1F418}","\u{1F99B}","\u{1F98F}","\u{1F42A}",
+  ],
+  "\u{1F354} Food": [
+    "\u{1F34E}","\u{1F34A}","\u{1F34B}","\u{1F34C}","\u{1F349}","\u{1F347}","\u{1F353}","\u{1FAD0}","\u{1F351}","\u{1F352}",
+    "\u{1F34D}","\u{1F95D}","\u{1F96D}","\u{1F346}","\u{1F951}","\u{1F966}","\u{1F952}","\u{1F336}\u{FE0F}","\u{1F33D}","\u{1F955}",
+    "\u{1F354}","\u{1F35F}","\u{1F355}","\u{1F32D}","\u{1F96A}","\u{1F32E}","\u{1F32F}","\u{1FAD4}","\u{1F959}","\u{1F9C6}",
+    "\u{1F95A}","\u{1F373}","\u{1F958}","\u{1F372}","\u{1FAD5}","\u{1F963}","\u{1F957}","\u{1F37F}","\u{1F9C8}","\u{1F371}",
+    "\u{1F366}","\u{1F367}","\u{1F368}","\u{1F369}","\u{1F36A}","\u{1F382}","\u{1F370}","\u{1F9C1}","\u{1F967}","\u{1F36B}",
+    "\u{2615}","\u{1FAD6}","\u{1F375}","\u{1F376}","\u{1F37E}","\u{1F377}","\u{1F378}","\u{1F379}","\u{1F37A}","\u{1F37B}",
+  ],
+  "\u{26BD} Activities": [
+    "\u{26BD}","\u{1F3C0}","\u{1F3C8}","\u{26BE}","\u{1F94E}","\u{1F3BE}","\u{1F3D0}","\u{1F3C9}","\u{1F94F}","\u{1F3B1}",
+    "\u{1F3D3}","\u{1F3F8}","\u{1F3D2}","\u{1F94D}","\u{1F3D1}","\u{1F3CF}","\u{1F945}","\u{26F3}","\u{1F93F}","\u{1F3A3}",
+    "\u{1F94A}","\u{1F94B}","\u{1F3BD}","\u{1F6B4}","\u{1F3C6}","\u{1F947}","\u{1F948}","\u{1F949}","\u{1F3C5}","\u{1F3AB}",
+    "\u{1F3A0}","\u{1F3A1}","\u{1F3A2}","\u{1F3A8}","\u{1F3AC}","\u{1F3A4}","\u{1F3A7}","\u{1F3B5}","\u{1F3B6}","\u{1F3B8}",
+  ],
+  "\u{2708}\u{FE0F} Travel": [
+    "\u{1F697}","\u{1F695}","\u{1F699}","\u{1F68C}","\u{1F68E}","\u{1F3CE}\u{FE0F}","\u{1F691}","\u{1F692}","\u{1F693}","\u{1F694}",
+    "\u{1F6B2}","\u{1F6F5}","\u{1F682}","\u{1F684}","\u{2708}\u{FE0F}","\u{1F6E9}\u{FE0F}","\u{1F680}","\u{1F6F8}","\u{1F6A2}","\u{26F5}",
+    "\u{1F3D4}\u{FE0F}","\u{1F3DD}\u{FE0F}","\u{1F3D6}\u{FE0F}","\u{1F3DE}\u{FE0F}","\u{1F3DF}\u{FE0F}","\u{1F3E0}","\u{1F3E2}","\u{1F3E5}","\u{1F3E8}","\u{26EA}",
+  ],
+  "\u{1F4A1} Objects": [
+    "\u{1F4F1}","\u{1F4BB}","\u{1F4BD}","\u{1F4BE}","\u{1F4BF}","\u{1F4C0}","\u{1F3A5}","\u{1F4F7}","\u{1F4F8}","\u{1F4F9}",
+    "\u{1F4FA}","\u{1F4FB}","\u{1F4E1}","\u{1F526}","\u{1F4A1}","\u{1F50B}","\u{1F50C}","\u{1F4DA}","\u{1F4D6}","\u{1F4DD}",
+    "\u{270F}\u{FE0F}","\u{1F58A}\u{FE0F}","\u{1F58B}\u{FE0F}","\u{1F4CC}","\u{1F4CE}","\u{2702}\u{FE0F}","\u{1F512}","\u{1F513}","\u{1F511}","\u{1F6E0}\u{FE0F}",
+    "\u{1F528}","\u{1FA93}","\u{1F527}","\u{1F529}","\u{1F52E}","\u{1F9F2}","\u{1F48E}","\u{1F4B0}","\u{1F4B3}","\u{1F4B5}",
+  ],
+  "\u{2B50} Symbols": [
+    "\u{2B50}","\u{1F31F}","\u{1F4AB}","\u{2728}","\u{1F525}","\u{1F4A5}","\u{1F308}","\u{2600}\u{FE0F}","\u{1F324}\u{FE0F}","\u{26C5}",
+    "\u{1F327}\u{FE0F}","\u{26A1}","\u{2744}\u{FE0F}","\u{1F32C}\u{FE0F}","\u{1F32A}\u{FE0F}","\u{1F30A}","\u{1F4A7}","\u{1F4A6}","\u{2603}\u{FE0F}","\u{26C4}",
+    "\u{2714}\u{FE0F}","\u{274C}","\u{2757}","\u{2753}","\u{203C}\u{FE0F}","\u{2049}\u{FE0F}","\u{1F4AF}","\u{1F51E}","\u{1F197}","\u{1F195}",
+  ],
+  "\u{1F3F3}\u{FE0F} Flags": [
+    "\u{1F3F3}\u{FE0F}","\u{1F3F4}","\u{1F3F3}\u{FE0F}\u{200D}\u{1F308}","\u{1F3F4}\u{200D}\u{2620}\u{FE0F}","\u{1F1E6}\u{1F1F7}","\u{1F1E6}\u{1F1FA}","\u{1F1E7}\u{1F1F7}","\u{1F1E8}\u{1F1E6}","\u{1F1E8}\u{1F1F3}","\u{1F1E8}\u{1F1F4}",
+    "\u{1F1E9}\u{1F1EA}","\u{1F1EA}\u{1F1F8}","\u{1F1EB}\u{1F1F7}","\u{1F1EC}\u{1F1E7}","\u{1F1EE}\u{1F1F3}","\u{1F1EE}\u{1F1F9}","\u{1F1EF}\u{1F1F5}","\u{1F1F0}\u{1F1F7}","\u{1F1F2}\u{1F1FD}","\u{1F1F3}\u{1F1F1}",
+    "\u{1F1F5}\u{1F1EA}","\u{1F1F5}\u{1F1F1}","\u{1F1F5}\u{1F1F9}","\u{1F1F7}\u{1F1FA}","\u{1F1FA}\u{1F1F8}","\u{1F1FF}\u{1F1E6}","\u{1F1F9}\u{1F1F7}","\u{1F1F8}\u{1F1EA}","\u{1F1E8}\u{1F1ED}","\u{1F1F9}\u{1F1ED}",
+  ],
+  "\u{1F92F} Misc": [
+    "\u{1F451}","\u{1F393}","\u{1F9E2}","\u{1F3A9}","\u{1F452}","\u{1F9E3}","\u{1F453}","\u{1F97D}","\u{1FA70}","\u{1F454}",
+    "\u{1F455}","\u{1F457}","\u{1F458}","\u{1F9E4}","\u{1F9E5}","\u{1F9E6}","\u{1F45F}","\u{1F45E}","\u{1F97E}","\u{1F97F}",
+    "\u{1F460}","\u{1F461}","\u{1FA74}","\u{1F462}","\u{1F45C}","\u{1F392}","\u{1F48D}","\u{1F484}","\u{1F48B}","\u{1F383}",
+    "\u{1F384}","\u{1F386}","\u{1F387}","\u{1F9E8}","\u{1F38E}","\u{1F38F}","\u{1F9E7}","\u{1F38B}","\u{1F391}","\u{1F3AE}",
+  ],
+};
+
+const IMG_BASE = "./all-the-bufo/";
+
+// ============ STATE ============
+let currentTemplate = null;
+let baseImg = null;
+let itemImg = null;    // Image element or null
+let itemEmoji = null;  // emoji string or null
+let itemX = 64;
+let itemY = 64;
+let itemSize = 40;
+let dragging = false;
+let dragOffset = { x: 0, y: 0 };
+
+// ============ INIT ============
+function init() {
+  buildTemplateGrid();
+  buildEmojiTabs();
+  switchEmojiTab(Object.keys(EMOJI_CATEGORIES)[0]);
+
+  const wrap = document.getElementById("canvasWrap");
+  wrap.addEventListener("mousedown", onCanvasMouseDown);
+  wrap.addEventListener("mousemove", onCanvasMouseMove);
+  window.addEventListener("mouseup", onCanvasMouseUp);
+  wrap.addEventListener("touchstart", onCanvasTouchStart, { passive: false });
+  wrap.addEventListener("touchmove", onCanvasTouchMove, { passive: false });
+  window.addEventListener("touchend", onCanvasMouseUp);
+}
+
+// ============ SCREEN 1: TEMPLATE GRID ============
+function buildTemplateGrid() {
+  const grid = document.getElementById("templateGrid");
+  TEMPLATES.forEach((tmpl, i) => {
+    const card = document.createElement("div");
+    card.className = "template-card";
+    card.onclick = () => selectTemplate(i);
+
+    const img = document.createElement("img");
+    img.src = IMG_BASE + tmpl.preview;
+    img.alt = tmpl.name;
+    img.loading = "lazy";
+    card.appendChild(img);
+
+    const label = document.createElement("div");
+    label.className = "label";
+    label.textContent = tmpl.name;
+    card.appendChild(label);
+
+    grid.appendChild(card);
+  });
+}
+
+function selectTemplate(index) {
+  currentTemplate = TEMPLATES[index];
+  itemX = currentTemplate.itemX;
+  itemY = currentTemplate.itemY;
+  itemSize = currentTemplate.itemSize;
+  itemImg = null;
+  itemEmoji = null;
+
+  document.getElementById("sizeSlider").value = itemSize;
+  document.getElementById("sizeLabel").textContent = itemSize;
+  document.getElementById("modifiers").style.display = currentTemplate.modifiers ? "flex" : "none";
+  document.getElementById("modCrying").checked = false;
+  document.getElementById("modAngry").checked = false;
+
+  baseImg = new Image();
+  baseImg.onload = () => {
+    render();
+    showMaker();
+  };
+  baseImg.src = IMG_BASE + currentTemplate.base;
+}
+
+function showMaker() {
+  document.getElementById("screen-select").style.display = "none";
+  document.getElementById("screen-maker").style.display = "block";
+  document.getElementById("headerBack").style.display = "inline-block";
+}
+
+function showSelect() {
+  document.getElementById("screen-select").style.display = "block";
+  document.getElementById("screen-maker").style.display = "none";
+  document.getElementById("headerBack").style.display = "none";
+}
+
+// ============ EMOJI PICKER ============
+function buildEmojiTabs() {
+  const tabs = document.getElementById("emojiTabs");
+  Object.keys(EMOJI_CATEGORIES).forEach(cat => {
+    const btn = document.createElement("button");
+    btn.className = "emoji-tab";
+    btn.textContent = cat;
+    btn.dataset.cat = cat;
+    btn.onclick = () => switchEmojiTab(cat);
+    tabs.appendChild(btn);
+  });
+}
+
+function switchEmojiTab(cat) {
+  document.querySelectorAll(".emoji-tab").forEach(t => {
+    t.classList.toggle("active", t.dataset.cat === cat);
+  });
+  const grid = document.getElementById("emojiGrid");
+  grid.innerHTML = "";
+  EMOJI_CATEGORIES[cat].forEach(emoji => {
+    const cell = document.createElement("div");
+    cell.className = "emoji-cell";
+    cell.textContent = emoji;
+    cell.onclick = () => pickEmoji(emoji);
+    grid.appendChild(cell);
+  });
+}
+
+function pickEmoji(emoji) {
+  itemEmoji = emoji;
+  itemImg = null;
+  render();
+}
+
+// ============ IMAGE UPLOAD ============
+function onFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      itemImg = img;
+      itemEmoji = null;
+      render();
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value = "";
+}
+
+// ============ SIZE SLIDER ============
+function onSizeChange(val) {
+  itemSize = parseInt(val);
+  document.getElementById("sizeLabel").textContent = val;
+  render();
+}
+
+// ============ DRAG ON CANVAS ============
+function canvasCoords(clientX, clientY) {
+  const wrap = document.getElementById("canvasWrap");
+  const rect = wrap.getBoundingClientRect();
+  return {
+    x: Math.round((clientX - rect.left) / rect.width * 128),
+    y: Math.round((clientY - rect.top) / rect.height * 128),
+  };
+}
+
+function onCanvasMouseDown(e) {
+  const pos = canvasCoords(e.clientX, e.clientY);
+  const half = itemSize / 2;
+  if (pos.x >= itemX - half && pos.x <= itemX + half &&
+      pos.y >= itemY - half && pos.y <= itemY + half) {
+    dragging = true;
+    dragOffset.x = pos.x - itemX;
+    dragOffset.y = pos.y - itemY;
+  } else {
+    // Click to move item center
+    itemX = Math.max(0, Math.min(128, pos.x));
+    itemY = Math.max(0, Math.min(128, pos.y));
+    render();
+  }
+  e.preventDefault();
+}
+
+function onCanvasMouseMove(e) {
+  if (!dragging) return;
+  const pos = canvasCoords(e.clientX, e.clientY);
+  itemX = Math.max(0, Math.min(128, pos.x - dragOffset.x));
+  itemY = Math.max(0, Math.min(128, pos.y - dragOffset.y));
+  render();
+}
+
+function onCanvasMouseUp() {
+  dragging = false;
+}
+
+function onCanvasTouchStart(e) {
+  const touch = e.touches[0];
+  const pos = canvasCoords(touch.clientX, touch.clientY);
+  const half = itemSize / 2;
+  if (pos.x >= itemX - half && pos.x <= itemX + half &&
+      pos.y >= itemY - half && pos.y <= itemY + half) {
+    dragging = true;
+    dragOffset.x = pos.x - itemX;
+    dragOffset.y = pos.y - itemY;
+  } else {
+    itemX = Math.max(0, Math.min(128, pos.x));
+    itemY = Math.max(0, Math.min(128, pos.y));
+    render();
+  }
+  e.preventDefault();
+}
+
+function onCanvasTouchMove(e) {
+  if (!dragging) return;
+  const touch = e.touches[0];
+  const pos = canvasCoords(touch.clientX, touch.clientY);
+  itemX = Math.max(0, Math.min(128, pos.x - dragOffset.x));
+  itemY = Math.max(0, Math.min(128, pos.y - dragOffset.y));
+  render();
+  e.preventDefault();
+}
+
+// ============ RENDER ============
+function render() {
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, 128, 128);
+
+  if (!baseImg || !baseImg.complete) return;
+
+  const drawItem = () => {
+    if (itemEmoji) {
+      drawEmoji(ctx, itemEmoji, itemX, itemY, itemSize);
+    } else if (itemImg) {
+      const half = itemSize / 2;
+      ctx.drawImage(itemImg, itemX - half, itemY - half, itemSize, itemSize);
+    }
+  };
+
+  const drawBase = () => {
+    ctx.drawImage(baseImg, 0, 0, 128, 128);
+  };
+
+  if (currentTemplate.itemLayer === "behind") {
+    drawItem();
+    drawBase();
+  } else {
+    drawBase();
+    drawItem();
+  }
+
+  // Modifiers
+  if (currentTemplate.modifiers) {
+    if (document.getElementById("modCrying").checked) {
+      drawTears(ctx);
+    }
+    if (document.getElementById("modAngry").checked) {
+      drawAngryBrows(ctx);
+    }
+  }
+}
+
+function drawEmoji(ctx, emoji, cx, cy, size) {
+  ctx.save();
+  ctx.font = size + "px serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(emoji, cx, cy);
+  ctx.restore();
+}
+
+function drawTears(ctx) {
+  ctx.save();
+  ctx.fillStyle = "rgba(80, 160, 255, 0.7)";
+  // Left tear
+  ctx.beginPath();
+  ctx.ellipse(42, 62, 3, 8, 0.1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(40, 74, 2, 5, 0.1, 0, Math.PI * 2);
+  ctx.fill();
+  // Right tear
+  ctx.beginPath();
+  ctx.ellipse(78, 62, 3, 8, -0.1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(80, 74, 2, 5, -0.1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawAngryBrows(ctx) {
+  ctx.save();
+  ctx.strokeStyle = "#333";
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  // Left brow (angled down toward center)
+  ctx.beginPath();
+  ctx.moveTo(30, 42);
+  ctx.lineTo(50, 48);
+  ctx.stroke();
+  // Right brow
+  ctx.beginPath();
+  ctx.moveTo(90, 42);
+  ctx.lineTo(70, 48);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ============ DOWNLOAD ============
+function downloadPNG() {
+  const canvas = document.getElementById("canvas");
+  const name = "bufo-" + (currentTemplate ? currentTemplate.name.toLowerCase().replace(/\s+/g, "-") : "custom") + ".png";
+  canvas.toBlob(blob => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("Downloaded " + name);
+  });
+}
+
+// ============ TOAST ============
+function showToast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 2000);
+}
+
+// ============ START ============
+window.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>

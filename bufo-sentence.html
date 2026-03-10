@@ -1,0 +1,2803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bufo Sentence Builder — Semantic Bufo Sentence Mapper</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    min-height: 100vh;
+  }
+
+  header {
+    background: #16213e;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid #0f3460;
+  }
+
+  header h1 {
+    font-size: 1.4rem;
+    color: #7ec8a0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  header h1 img {
+    width: 32px;
+    height: 32px;
+    image-rendering: pixelated;
+  }
+
+  .subtitle {
+    font-size: 0.75rem;
+    color: #888;
+    font-weight: 400;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px 20px;
+  }
+
+  /* Progress Section */
+  #progress-section {
+    text-align: center;
+    padding: 40px 0;
+  }
+
+  #progress-section h2 {
+    color: #7ec8a0;
+    margin-bottom: 8px;
+    font-size: 1.2rem;
+  }
+
+  #progress-section p {
+    color: #999;
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+  }
+
+  .progress-bar-wrap {
+    background: #222244;
+    border-radius: 8px;
+    height: 12px;
+    max-width: 500px;
+    margin: 0 auto 8px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #7ec8a0);
+    border-radius: 8px;
+    width: 0%;
+    transition: width 0.3s;
+  }
+
+  #progress-label {
+    color: #aaa;
+    font-size: 0.8rem;
+  }
+
+  /* Input Section */
+  #input-section {
+    display: none;
+  }
+
+  .input-wrap {
+    margin-bottom: 24px;
+  }
+
+  .input-wrap textarea {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 1.1rem;
+    border: 2px solid #333;
+    border-radius: 12px;
+    background: #222244;
+    color: #e0e0e0;
+    outline: none;
+    transition: border-color 0.2s;
+    resize: vertical;
+    min-height: 80px;
+    font-family: inherit;
+    line-height: 1.5;
+  }
+
+  .input-wrap textarea:focus {
+    border-color: #7ec8a0;
+  }
+
+  .input-wrap textarea::placeholder {
+    color: #666;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 24px;
+    background: #7ec8a0;
+    color: #1a1a2e;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn:hover {
+    background: #9edcba;
+    transform: translateY(-1px);
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-secondary {
+    background: #333;
+    color: #ccc;
+  }
+
+  .btn-secondary:hover {
+    background: #444;
+  }
+
+  .input-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  /* Output Section */
+  #output-section {
+    display: none;
+    margin-top: 8px;
+  }
+
+  .output-label {
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Visual sentence row */
+  .visual-sentence {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 20px;
+    background: #222244;
+    border-radius: 12px;
+    border: 2px solid #333;
+    margin-bottom: 20px;
+    min-height: 120px;
+  }
+
+  .chunk-bubble {
+    background: #2a2a4a;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 0.95rem;
+    color: #ddd;
+    max-width: 300px;
+    line-height: 1.4;
+  }
+
+  .bufo-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.15s;
+    position: relative;
+  }
+
+  .bufo-slot:hover {
+    transform: scale(1.1);
+  }
+
+  .bufo-slot img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+  }
+
+  .bufo-slot:hover img {
+    border-color: #7ec8a0;
+  }
+
+  .bufo-slot .bufo-label {
+    font-size: 0.6rem;
+    color: #888;
+    margin-top: 4px;
+    text-align: center;
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bufo-slot .cycle-hint {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #7ec8a0;
+    color: #1a1a2e;
+    font-size: 0.55rem;
+    font-weight: 700;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .bufo-slot:hover .cycle-hint {
+    opacity: 1;
+  }
+
+  /* Copyable text */
+  .copy-section {
+    position: relative;
+  }
+
+  .copy-box {
+    width: 100%;
+    padding: 14px 50px 14px 16px;
+    background: #1a1a2e;
+    border: 2px solid #333;
+    border-radius: 10px;
+    color: #ccc;
+    font-size: 0.9rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    line-height: 1.6;
+    resize: none;
+    outline: none;
+    min-height: 60px;
+  }
+
+  .copy-box:focus {
+    border-color: #7ec8a0;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #333;
+    border: 1px solid #555;
+    color: #ccc;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.15s;
+  }
+
+  .copy-btn:hover {
+    background: #7ec8a0;
+    color: #1a1a2e;
+    border-color: #7ec8a0;
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    color: #666;
+    padding: 40px 0;
+    font-size: 0.95rem;
+  }
+
+  .empty-state img {
+    width: 80px;
+    height: 80px;
+    image-rendering: pixelated;
+    margin-bottom: 12px;
+    opacity: 0.5;
+  }
+
+  /* Error */
+  .error-msg {
+    background: #3a1a1a;
+    border: 1px solid #662222;
+    color: #ff9999;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 0.85rem;
+    display: none;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .toast.show { opacity: 1; }
+
+  /* Processing indicator */
+  .processing {
+    display: none;
+    text-align: center;
+    padding: 30px 0;
+    color: #888;
+  }
+
+  .processing.active {
+    display: block;
+  }
+
+  .processing .spinner {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border: 3px solid #333;
+    border-top-color: #7ec8a0;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 10px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  @media (max-width: 600px) {
+    .visual-sentence {
+      gap: 6px;
+      padding: 12px;
+    }
+    .bufo-slot img {
+      width: 60px;
+      height: 60px;
+    }
+    .chunk-bubble {
+      font-size: 0.85rem;
+      padding: 6px 10px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>
+    <img src="./all-the-bufo/bufo-brain.png" alt="bufo">
+    Bufo Sentence
+    <span class="subtitle">Semantic Sentence Mapper</span>
+  </h1>
+</header>
+
+<div class="container">
+  <!-- Progress -->
+  <div id="progress-section">
+    <h2 id="progress-title">Loading AI Model...</h2>
+    <p id="progress-desc">Downloading sentence embedding model (~23MB, cached after first load)</p>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-bar"></div>
+    </div>
+    <div id="progress-label">Initializing...</div>
+  </div>
+
+  <!-- Input -->
+  <div id="input-section">
+    <div class="error-msg" id="error-msg"></div>
+    <div class="input-wrap">
+      <textarea id="sentence-input" placeholder="Type a sentence to map to bufos... (e.g. &quot;I'm so happy we shipped the feature and now we can celebrate&quot;)" rows="3"></textarea>
+      <div class="input-actions">
+        <button class="btn" id="build-btn" onclick="processAndRender()">Build Bufo Sentence</button>
+      </div>
+    </div>
+
+    <div class="processing" id="processing">
+      <div class="spinner"></div>
+      <div>Finding the best bufos for each chunk...</div>
+    </div>
+
+    <div id="output-section">
+      <div class="output-label">Visual Sentence</div>
+      <div class="visual-sentence" id="visual-output"></div>
+
+      <div class="output-label">Slack-Ready Text</div>
+      <div class="copy-section">
+        <textarea class="copy-box" id="copy-box" readonly></textarea>
+        <button class="copy-btn" onclick="copyToClipboard()">Copy</button>
+      </div>
+    </div>
+
+    <div id="empty-state" class="empty-state">
+      <img src="./all-the-bufo/bufo-brain.png" alt="bufo">
+      <p>Type a sentence and click "Build" to map each phrase to a bufo!</p>
+      <p style="font-size:0.8rem; margin-top:8px;">1,669 bufos indexed • click any bufo to cycle alternatives</p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+// ============ BUFO FILENAMES ============
+const BUFO_FILES = [
+'according-to-all-known-laws-of-aviation-there-is-no-way-a-bufo-should-be-able-to-fly.png',
+'add-bufo.png',
+'all-the-bufo.png',
+'angry-karen-bufo-would-like-to-speak-with-your-manager.png',
+'australian-bufo.png',
+'awesomebufo.png',
+'be-the-bufo-you-want-to-see.png',
+'blockheads-bufo.png',
+'breaking-bufo.png',
+'bronze-bufo.png',
+'buff-bufo.png',
+'bufo_wants_his_money.png',
+'bufo-0-10.png',
+'bufo-10-4.png',
+'bufo-10.png',
+'bufo-2022.png',
+'bufo-accepts-a-popsicle.png',
+'bufo-achieving-coding-flow.png',
+'bufo-ack.png',
+'bufo-actually.png',
+'bufo-adding-bugs-to-the-code.gif',
+'bufo-adidas.png',
+'bufo-ages-rapidly-in-the-void.png',
+'bufo-aight-imma-head-out.gif',
+'bufo-airpods.png',
+'bufo-alarma.gif',
+'bufo-all-good.png',
+'bufo-all-warm-and-fuzzy-inside.png',
+'bufo-am-i.png',
+'bufo-amaze.gif',
+'bufo-ambiently-existing.png',
+'bufo-american-football.png',
+'bufo-android.png',
+'bufo-angel.png',
+'bufo-angrily-gives-you-a-birthday-gift.png',
+'bufo-angrily-gives-you-white-elephant-gift.png',
+'bufo-angry-at-fly.png',
+'bufo-angry-bullfrog-screech.gif',
+'bufo-angry.gif',
+'bufo-angryandfrozen.png',
+'bufo-anime-glasses.png',
+'bufo-appears.gif',
+'bufo-apple.png',
+'bufo-appreciates-jwst-pillars-of-creation.png',
+'bufo-approve.png',
+'bufo-arabicus.png',
+'bufo-are-you-seeing-this.gif',
+'bufo-arr.png',
+'bufo-arrr.png',
+'bufo-arrrrrr.png',
+'bufo-arrrrrrr.png',
+'bufo-arrrrrrrrr.png',
+'bufo-arrrrrrrrrrrrrrr.png',
+'bufo-artist.png',
+'bufo-asks-politely-to-stop.png',
+'bufo-assists-with-the-landing.gif',
+'bufo-atc.png',
+'bufo-away.png',
+'bufo-awkward-smile-nod.gif',
+'bufo-awkward-smile.png',
+'bufo-ayy-pi.png',
+'bufo-ayy.png',
+'bufo-baby.png',
+'bufo-babysits-an-urgent-ticket.png',
+'bufo-back-pat.png',
+'bufo-backpack.png',
+'bufo-backpat.png',
+'bufo-bag-of-bufos.png',
+'bufo-bait.png',
+'bufo-baker.png',
+'bufo-baller.png',
+'bufo-bandana.png',
+'bufo-banging-head-against-the-wall.gif',
+'bufo-barbie.png',
+'bufo-barney.png',
+'bufo-barrister.png',
+'bufo-baseball.png',
+'bufo-basic-blush.png',
+'bufo-basketball.png',
+'bufo-batman.png',
+'bufo-be-my-valentine.png',
+'bufo-became-a-stranger-whose-laugh-you-can-recognize-anywhere.png',
+'bufo-bee-leaf.png',
+'bufo-bee-sad.png',
+'bufo-bee.png',
+'bufo-beer.png',
+'bufo-begrudgingly-offers-you-a-plus.png',
+'bufo-begs-for-ethernet-cable.png',
+'bufo-behind-bars.png',
+'bufo-bell-pepper.png',
+'bufo-betray-but-its-a-hotdog.png',
+'bufo-betray.png',
+'bufo-big-eyes-stare.png',
+'bufo-bigfoot.png',
+'bufo-bill-pay.png',
+'bufo-bird.png',
+'bufo-birthday-but-not-particularly-happy.png',
+'bufo-black-history.png',
+'bufo-black-tea.png',
+'bufo-blank-stare.png',
+'bufo-blanket.png',
+'bufo-blem.png',
+'bufo-blep.png',
+'bufo-bless-back.png',
+'bufo-bless.png',
+'bufo-blesses-this-pr.png',
+'bufo-block.png',
+'bufo-blogging.png',
+'bufo-bloody-mary.png',
+'bufo-blows-the-magic-conch.png',
+'bufo-blue.png',
+'bufo-blueberries.png',
+'bufo-blush.gif',
+'bufo-bob-ross.png',
+'bufo-boba-army.png',
+'bufo-boba.png',
+'bufo-boi.gif',
+'bufo-boiii.gif',
+'bufo-bon-appetit.png',
+'bufo-bongo.gif',
+'bufo-bonk.png',
+'bufo-bops-you-on-the-head-with-a-baguette.png',
+'bufo-bops-you-on-the-head-with-a-rolled-up-newspaper.png',
+'bufo-bouge.png',
+'bufo-bouncer-says-its-time-to-go-now.png',
+'bufo-bouquet.png',
+'bufo-bourgeoisie.png',
+'bufo-bowser.png',
+'bufo-box-of-chocolates.png',
+'bufo-brain-damage-escalates-to-new-heights.gif',
+'bufo-brain-damage-intensifies.gif',
+'bufo-brain-damage-intesifies-more.gif',
+'bufo-brain-damage.png',
+'bufo-brain-exploding.gif',
+'bufo-brain.png',
+'bufo-breakdown.png',
+'bufo-breaks-tech-bros-heart.png',
+'bufo-breaks-up-with-you.png',
+'bufo-breaks-your-heart.png',
+'bufo-brick.png',
+'bufo-bright.png',
+'bufo-brings-a-new-meaning-to-brain-freeze-by-bopping-you-on-the-head-with-a-popsicle.gif',
+'bufo-brings-a-new-meaning-to-gaveled-by-slamming-the-hammer-very-loud.gif',
+'bufo-brings-magic-to-the-riot.gif',
+'bufo-broccoli.png',
+'bufo-broke-his-toe-and-isn\u2019t-sure-what-to-do-about-the-12k-he-signed-up-for.png',
+'bufo-broke.png',
+'bufo-broom.png',
+'bufo-brought-a-taco.png',
+'bufo-bufo.png',
+'bufo-but-anatomically-correct.png',
+'bufo-but-his-arms-are-ho-scale-model-trains.png',
+'bufo-but-his-arms-are-lava-lamps.png',
+'bufo-but-instead-of-green-its-hotdogs.png',
+'bufo-but-instead-of-green-its-pizza.png',
+'bufo-but-you-can-feel-the-electro-house-music-in-the-gif-and-oh-yea-theres-also-a-dapper-chicken.gif',
+'bufo-but-you-can-see-the-bufo-in-bufos-eyes.png',
+'bufo-but-you-can-see-the-hotdog-in-their-eyes.png',
+'bufo-buy-high-sell-low.png',
+'bufo-buy-low-sell-high.png',
+'bufo-cache-buddy.png',
+'bufo-cackle.gif',
+'bufo-call-for-help.png',
+'bufo-came-into-the-office-just-to-use-the-printer.png',
+'bufo-can\u2019t-believe-heartbreak-feels-good-in-a-place-like-this.png',
+'bufo-can\u2019t-help-but-wonder-who-watches-the-watchmen.png',
+'bufo-canada.png',
+'bufo-cant-believe-your-audacity.png',
+'bufo-cant-find-a-pull-request.png',
+'bufo-cant-find-an-issue.png',
+'bufo-cant-stop-thinking-about-usher-killing-it-on-roller-skates.png',
+'bufo-cant-take-it-anymore.png',
+'bufo-cantelope.png',
+'bufo-capri-sun.png',
+'bufo-captain-obvious.png',
+'bufo-caribou.png',
+'bufo-carnage.png',
+'bufo-carrot.png',
+'bufo-cash-money.png',
+'bufo-cash-squint.png',
+'bufo-casts-a-spell-on-you.gif',
+'bufo-catch.png',
+'bufo-caught-a-radioactive-bufo.png',
+'bufo-caught-a-small-bufo.png',
+'bufo-caused-an-incident.png',
+'bufo-celebrate.png',
+'bufo-censored.png',
+'bufo-champions-trunk-based-development.png',
+'bufo-chappell-roan.png',
+'bufo-chatting.gif',
+'bufo-check.png',
+'bufo-checks-out-the-vibe.png',
+'bufo-cheese.png',
+'bufo-chef.png',
+'bufo-chefkiss-with-hat.png',
+'bufo-chefkiss.png',
+'bufo-cherries.png',
+'bufo-chicken.png',
+'bufo-chomp.gif',
+'bufo-christmas.gif',
+'bufo-chungus.png',
+'bufo-churns-the-butter.gif',
+'bufo-clap-hd.gif',
+'bufo-clap.gif',
+'bufo-claus.png',
+'bufo-clown.png',
+'bufo-coconut.png',
+'bufo-code-freeze.png',
+'bufo-coding.png',
+'bufo-coffee-happy.png',
+'bufo-coin.gif',
+'bufo-come-to-the-dark-side.png',
+'bufo-comfy.gif',
+'bufo-commits-digital-piracy.png',
+'bufo-competes-in-the-bufo-bracket.png',
+'bufo-complies-with-the-chinese-government.png',
+'bufo-concerned.png',
+'bufo-cone-of-shame.png',
+'bufo-confetti.png',
+'bufo-confused.gif',
+'bufo-congrats.png',
+'bufo-considers-tasting-the-tide-pod-just-this-one-time.png',
+'bufo-cookie.png',
+'bufo-cool-glasses.gif',
+'bufo-corn.png',
+'bufo-cornucopia.png',
+'bufo-covid.png',
+'bufo-cowboy.png',
+'bufo-cozy-blanky.png',
+'bufo-crewmate-blue-bounce.gif',
+'bufo-crewmate-blue.png',
+'bufo-crewmate-cyan-bounce.gif',
+'bufo-crewmate-cyan.png',
+'bufo-crewmate-green-bounce.gif',
+'bufo-crewmate-green.png',
+'bufo-crewmate-lime-bounce.gif',
+'bufo-crewmate-lime.png',
+'bufo-crewmate-orange-bounce.gif',
+'bufo-crewmate-orange.png',
+'bufo-crewmate-pink-bounce.gif',
+'bufo-crewmate-pink.png',
+'bufo-crewmate-purple-bounce.gif',
+'bufo-crewmate-purple.png',
+'bufo-crewmate-red-bounce.gif',
+'bufo-crewmate-red.png',
+'bufo-crewmate-yellow-bounce.gif',
+'bufo-crewmate-yellow.png',
+'bufo-crewmates.gif',
+'bufo-cries-into-his-beer.png',
+'bufo-crikey.png',
+'bufo-croptop.png',
+'bufo-crumbs.png',
+'bufo-crustacean.png',
+'bufo-cry-pray.png',
+'bufo-cry.png',
+'bufo-crying-in-the-rain.png',
+'bufo-crying-jail.png',
+'bufo-crying-stop.gif',
+'bufo-crying-tears-of-crying-tears-of-joy.png',
+'bufo-crying-why.png',
+'bufo-crying.gif',
+'bufo-cubo.png',
+'bufo-cucumber.png',
+'bufo-cuddle.png',
+'bufo-cupcake.png',
+'bufo-cuppa.png',
+'bufo-cute-dance.gif',
+'bufo-cute.png',
+'bufo-dab.png',
+'bufo-dancing.gif',
+'bufo-dapper.png',
+'bufo-dbz.png',
+'bufo-dead.png',
+'bufo-deal-with-it.png',
+'bufo-declines-your-suppository-offer.png',
+'bufo-deep-hmm.gif',
+'bufo-defend.png',
+'bufo-delurk.gif',
+'bufo-demands-more-nom-noms.gif',
+'bufo-demure.png',
+'bufo-desperately-needs-mavis-beacon.gif',
+'bufo-detective.png',
+'bufo-develops-clairvoyance-while-trapped-in-the-void.png',
+'bufo-devil.png',
+'bufo-devouring-his-son.png',
+'bufo-di-beppo.png',
+'bufo-did-not-make-it-through-the-heatwave.png',
+'bufo-didnt-get-any-sleep.png',
+'bufo-didnt-listen-to-willy-wonka.png',
+'bufo-disappointed.png',
+'bufo-disco.png',
+'bufo-discombobulated.png',
+'bufo-disguise.png',
+'bufo-ditto.png',
+'bufo-dizzy.gif',
+'bufo-do-not-panic.png',
+'bufo-dodge.png',
+'bufo-doesnt-believe-you.png',
+'bufo-doesnt-understand-how-this-meeting-isnt-an-email.jpg',
+'bufo-doesnt-wanna-get-out-of-the-bath-yet.png',
+'bufo-dog.png',
+'bufo-domo.png',
+'bufo-done-check.gif',
+'bufo-dont-even-see-the-code-anymore.gif',
+'bufo-dont-trust-whats-over-there.png',
+'bufo-dont.png',
+'bufo-double-chin.png',
+'bufo-double-vaccinated.png',
+'bufo-doubt.png',
+'bufo-dough.png',
+'bufo-downvote.png',
+'bufo-dr-depper.png',
+'bufo-dragon.png',
+'bufo-drags-knee.png',
+'bufo-drake-no.png',
+'bufo-drake-yes.png',
+'bufo-drifts-through-the-void.png',
+'bufo-drinking-baja-blast.png',
+'bufo-drinking-boba.png',
+'bufo-drinking-coffee.gif',
+'bufo-drinking-coke.png',
+'bufo-drinking-pepsi.png',
+'bufo-drinking-pumpkin-spice-latte.png',
+'bufo-drinks-from-the-fire-hose.png',
+'bufo-drops-everything-now.gif',
+'bufo-drowning-in-leeks.png',
+'bufo-drowns-in-memories-of-ocean.png',
+'bufo-drowns-in-tickets-but-ok.png',
+'bufo-drumroll.png',
+'bufo-easter-bunny.png',
+'bufo-eating-bufo-dog.png',
+'bufo-eating-hotdog.png',
+'bufo-eating-lollipop.png',
+'bufo-eats-a-bufo-taco.png',
+'bufo-eats-all-your-honey.png',
+'bufo-eats-bufo-taco.png',
+'bufo-egg.png',
+'bufo-elite.png',
+'bufo-emo.png',
+'bufo-encourages-you-to-wrap-it-up.gif',
+'bufo-ends-the-holy-war-by-offering-the-objectively-best-programming-language.png',
+'bufo-enjoys-life-in-the-windows-xp-background.png',
+'bufo-enjoys-life.png',
+'bufo-enraged.png',
+'bufo-enter.gif',
+'bufo-enters-the-void.gif',
+'bufo-entrance.gif',
+'bufo-ethereum.png',
+'bufo-everything-is-on-fire.gif',
+'bufo-evil.png',
+'bufo-excited-but-sad.png',
+'bufo-excited.gif',
+'bufo-existential-dread-sets-in.gif',
+'bufo-exit.gif',
+'bufo-experiences-euneirophrenia.png',
+'bufo-extra-cool.gif',
+'bufo-eye-twitch.gif',
+'bufo-eyeballs-bloodshot.png',
+'bufo-eyeballs.png',
+'bufo-eyes.png',
+'bufo-fab.png',
+'bufo-facepalm.png',
+'bufo-failed-the-load-test.png',
+'bufo-fails-the-vibe-check.png',
+'bufo-fancy-tea.png',
+'bufo-farmer.png',
+'bufo-fastest-rubber-stamp-in-the-west.png',
+'bufo-fears-the-full-moon.png',
+'bufo-fedora.png',
+'bufo-feel-better.png',
+'bufo-feeling-pretty-might-delete-later.png',
+'bufo-feels-appreciated.png',
+'bufo-feels-nothing.png',
+'bufo-fell-asleep.png',
+'bufo-fellow-kids.png',
+'bufo-fieri.png',
+'bufo-fight.png',
+'bufo-fine-art.png',
+'bufo-fingerguns-back.png',
+'bufo-fingerguns.png',
+'bufo-fire-engine.png',
+'bufo-fire.gif',
+'bufo-firefighter.png',
+'bufo-fish-bulb.png',
+'bufo-fish.png',
+'bufo-fistbump.gif',
+'bufo-flex.gif',
+'bufo-flipoff.png',
+'bufo-flips-table.png',
+'bufo-folder.png',
+'bufo-fomo.png',
+'bufo-food-please.png',
+'bufo-football.png',
+'bufo-for-dummies.png',
+'bufo-forgot-how-to-type.gif',
+'bufo-forgot-that-you-existed-it-isnt-love-it-isnt-hate-its-just-indifference.png',
+'bufo-forgot-to-charge-his-airpods-before-the-flight-and-now-has-to-be-alone-with-his-thoughts.png',
+'bufo-found-a-cockroach-in-the-office.png',
+'bufo-found-some-more-leeks.png',
+'bufo-found-the-leeks.png',
+'bufo-found-yet-another-juicebox.png',
+'bufo-french.png',
+'bufo-friends.png',
+'bufo-frustrated-with-flower.png',
+'bufo-fun-is-over.png',
+'bufo-furiously-tries-to-write-python.gif',
+'bufo-furiously-trying-to-cycle-but-legs-too-short.gif',
+'bufo-furiously-writes-an-epic-update.gif',
+'bufo-furiously-writes-you-a-peer-review.gif',
+'bufo-fu\u00dfball.png',
+'bufo-futbol.gif',
+'bufo-futbol.png',
+'bufo-gamer.png',
+'bufo-gaming.png',
+'bufo-gandalf-has-seen-things.png',
+'bufo-gandalf-wat.png',
+'bufo-gandalf.gif',
+'bufo-gardener.png',
+'bufo-garlic.png',
+'bufo-gavel-dual-wield.png',
+'bufo-gavel.png',
+'bufo-gen-z.png',
+'bufo-gentleman.png',
+'bufo-germany.gif',
+'bufo-get-in-loser-were-going-shopping.png',
+'bufo-gets-downloaded-from-the-cloud.gif',
+'bufo-gets-hit-in-the-face-with-an-egg.png',
+'bufo-gets-uploaded-to-the-cloud.gif',
+'bufo-gets-whiplash.png',
+'bufo-ghost-costume.png',
+'bufo-ghost.png',
+'bufo-giggling-in-a-cat-onesie.gif',
+'bufo-give-money.png',
+'bufo-give-pack-of-ice.png',
+'bufo-give.png',
+'bufo-gives-a-fake-moustache.png',
+'bufo-gives-a-magic-number.png',
+'bufo-gives-an-idea.png',
+'bufo-gives-approval.png',
+'bufo-gives-can-of-worms.png',
+'bufo-gives-croissant.png',
+'bufo-gives-databricks.png',
+'bufo-gives-j.png',
+'bufo-gives-star.png',
+'bufo-gives-vin-diesel-a-gentle-little-kiss-on-his-shiny-head.png',
+'bufo-gives-you-a-feature-flag.png',
+'bufo-gives-you-a-hotdog.png',
+'bufo-gives-you-some-extra-brain.png',
+'bufo-gives-you-some-rice.png',
+'bufo-glasses.png',
+'bufo-glitch.gif',
+'bufo-goal.png',
+'bufo-goes-super-saiyan.png',
+'bufo-goes-to-space.png',
+'bufo-goggles-are-too-tight.png',
+'bufo-good-morning.png',
+'bufo-good-vibe.gif',
+'bufo-goose-hat-happy-dance.gif',
+'bufo-got-a-tan.png',
+'bufo-got-zapped.png',
+'bufo-grapes.png',
+'bufo-grasping-at-straws.png',
+'bufo-grenade.gif',
+'bufo-grimaces-with-eyebrows.png',
+'bufo-guitar.gif',
+'bufo-ha-ha.png',
+'bufo-hacker.png',
+'bufo-hackerman.gif',
+'bufo-haha-yes-haha-yes.png',
+'bufo-hahabusiness.png',
+'bufo-halloween-pumpkin.png',
+'bufo-halloween.gif',
+'bufo-hands-on-hips-annoyed.png',
+'bufo-hands.png',
+'bufo-hangs-ten.png',
+'bufo-hangs-up.gif',
+'bufo-hannibal-lecter.png',
+'bufo-hanson.png',
+'bufo-happy-hour.gif',
+'bufo-happy-new-year.png',
+'bufo-happy.png',
+'bufo-hardhat.png',
+'bufo-has-a-5-dollar-footlong.png',
+'bufo-has-a-banana.png',
+'bufo-has-a-bbq.png',
+'bufo-has-a-big-wrench.png',
+'bufo-has-a-blue-wrench.png',
+'bufo-has-a-crush.png',
+'bufo-has-a-dr-pepper.png',
+'bufo-has-a-fresh-slice.png',
+'bufo-has-a-headache.gif',
+'bufo-has-a-hot-take.png',
+'bufo-has-a-question.png',
+'bufo-has-a-sandwich.png',
+'bufo-has-a-spoon.png',
+'bufo-has-a-timtam.png',
+'bufo-has-accepted-its-horrible-fate.png',
+'bufo-has-activated.png',
+'bufo-has-another-sandwich.png',
+'bufo-has-been-cleaning.png',
+'bufo-has-gotta-poop-but-hes-stuck-in-a-long-meeting.gif',
+'bufo-has-infiltrated-your-secure-system.gif',
+'bufo-has-midas-touch.png',
+'bufo-has-read-enough-documentation-for-today.png',
+'bufo-has-some-ketchup.png',
+'bufo-has-thread-for-guts.png',
+'bufo-hasnt-worked-a-full-week-so-far-this-year.png',
+'bufo-hat.png',
+'bufo-hazmat.png',
+'bufo-headbang.gif',
+'bufo-headphones.png',
+'bufo-heart-but-its-anatomically-correct.png',
+'bufo-heart.png',
+'bufo-hearts.png',
+'bufo-hehe.gif',
+'bufo-hell.gif',
+'bufo-hello.gif',
+'bufo-heralds-an-incident.png',
+'bufo-heralds-taco-taking.png',
+'bufo-heralds-your-success.png',
+'bufo-here-to-make-a-dill-for-more-pickles.png',
+'bufo-hides.png',
+'bufo-high-speed-train.png',
+'bufo-highfive-1.png',
+'bufo-highfive-2.png',
+'bufo-hipster.png',
+'bufo-hmm-no.gif',
+'bufo-hmm-yes.gif',
+'bufo-hmm.png',
+'bufo-holding-back-tears.png',
+'bufo-holding-space-for-defying-gravity.png',
+'bufo-holds-pumpkin.png',
+'bufo-homologates.png',
+'bufo-hop-in-we\u2019re-going-to-flavortown.png',
+'bufo-hopes-you-also-are-having-a-good-day.png',
+'bufo-hopes-you-are-having-a-good-day.png',
+'bufo-hot-pocket.png',
+'bufo-hotdog-rocket.png',
+'bufo-howdy.png',
+'bufo-huffing.png',
+'bufo-hug.png',
+'bufo-hugs-moo-deng.png',
+'bufo-hype.gif',
+'bufo-i-just-love-it-so-much.png',
+'bufo-ice-cream.png',
+'bufo-idk-but-okay-i-guess-so.png',
+'bufo-idk.png',
+'bufo-im-in-danger.png',
+'bufo-imposter.png',
+'bufo-in-a-pear-tree.png',
+'bufo-in-his-cozy-bed-hoping-he-never-gets-capitated.png',
+'bufo-in-rome.png',
+'bufo-inception.png',
+'bufo-increases-his-dimensionality-while-trapped-in-the-void.png',
+'bufo-indulges-in-a-hot-dog-omakase.png',
+'bufo-innocent.gif',
+'bufo-inspecting.png',
+'bufo-inspired.png',
+'bufo-instigates-a-dramatic-turn-of-events.png',
+'bufo-intensifies.gif',
+'bufo-intern.png',
+'bufo-investigates.png',
+'bufo-iphone.png',
+'bufo-irl.png',
+'bufo-iron-throne.png',
+'bufo-ironside.png',
+'bufo-is-a-little-worried-but-still-trying-to-be-supportive.png',
+'bufo-is-a-part-of-gen-z.png',
+'bufo-is-a-steak-holder.png',
+'bufo-is-about-to-zap-you.png',
+'bufo-is-all-ears.png',
+'bufo-is-an-ai-generated-meerkat.png',
+'bufo-is-an-anime-geisha.png',
+'bufo-is-angry-at-the-water-cooler-bottle-company-for-missing-yet-another-delivery.png',
+'bufo-is-at-his-wits-end.png',
+'bufo-is-at-the-dentist.png',
+'bufo-is-better-known-for-the-things-he-does-on-the-mattress.png',
+'bufo-is-doing-doordash-deliveries-in-the-evenings-because-he-lost-the-family-savings-on-memecoins.png',
+'bufo-is-eating-halal-and-is-also-halal.png',
+'bufo-is-exhausted-rooting-for-the-antihero.png',
+'bufo-is-fixing-it-dont-you-worry.png',
+'bufo-is-flying-and-is-the-plane.png',
+'bufo-is-getting-abducted.png',
+'bufo-is-getting-paged-now.png',
+'bufo-is-glad-the-british-were-kicked-out.png',
+'bufo-is-happy-youre-happy.png',
+'bufo-is-having-a-really-bad-time.png',
+'bufo-is-having-war-flashbacks.png',
+'bufo-is-in-a-never-ending-meeting.png',
+'bufo-is-in-on-the-joke.png',
+'bufo-is-inhaling-this-popcorn.gif',
+'bufo-is-it-done.gif',
+'bufo-is-jealous-its-your-birthday.png',
+'bufo-is-jean-baptise-emanuel-zorg.png',
+'bufo-is-keeping-his-eye-on-you.gif',
+'bufo-is-living-the-life-of-a-showgirl.png',
+'bufo-is-lonely.png',
+'bufo-is-lost-in-the-void.png',
+'bufo-is-lost.png',
+'bufo-is-omniscient.png',
+'bufo-is-on-a-sled.png',
+'bufo-is-only-allowed-to-eat-foods-that-dont-require-chewing.png',
+'bufo-is-panicking.gif',
+'bufo-is-petting-your-cat.png',
+'bufo-is-petting-your-dog.png',
+'bufo-is-proud-of-you.gif',
+'bufo-is-ready-for-xmas.png',
+'bufo-is-ready-to-build-when-you-are.png',
+'bufo-is-ready-to-burn-down-the-mta-because-their-train-skipped-their-station-again.png',
+'bufo-is-ready-to-consume-his-daily-sodium-intake-in-one-sitting.png',
+'bufo-is-ready-to-eat.png',
+'bufo-is-ready-to-riot.png',
+'bufo-is-ready-to-slay-the-dragon.png',
+'bufo-is-romantic.png',
+'bufo-is-sad-no-one-complimented-their-agent-47-cosplay.png',
+'bufo-is-safe-behind-bars.gif',
+'bufo-is-sharpay.png',
+'bufo-is-so-happy-youre-here.png',
+'bufo-is-struggling-to-stay-awake-after-ordering-the-beef-wellington-at-lunch.png',
+'bufo-is-the-perfect-human-form.png',
+'bufo-is-unconcerned.png',
+'bufo-is-up-to-something.png',
+'bufo-is-very-upset-now.png',
+'bufo-is-vindicated-that-they-should-have-added-pitching-at-the-deadline-but-it-is-not-helping.png',
+'bufo-is-watching-you.png',
+'bufo-is-working-through-the-tears.png',
+'bufo-is-working-too-much.png',
+'bufo-isitdone.gif',
+'bufo-isnt-angry-just-disappointed.png',
+'bufo-isnt-going-to-rewind-the-vhs-before-returning-it.png',
+'bufo-isnt-reading-all-that.png',
+'bufo-it-bar.png',
+'bufo-italian.png',
+'bufo-its-over-9000.png',
+'bufo-its-too-early-for-this.png',
+'bufo-jam.gif',
+'bufo-jammies.gif',
+'bufo-jammin.gif',
+'bufo-jealous.png',
+'bufo-jedi.gif',
+'bufo-jomo.png',
+'bufo-judge.gif',
+'bufo-judges.png',
+'bufo-juice.png',
+'bufo-juicebox.png',
+'bufo-juicy.png',
+'bufo-just-a-little-sad.png',
+'bufo-just-a-little-salty.png',
+'bufo-just-checking.gif',
+'bufo-just-finished-a-workout.png',
+'bufo-just-got-back-from-the-dentist.png',
+'bufo-just-ice.png',
+'bufo-just-walked-into-an-awkward-conversation-and-is-now-trying-to-figure-out-how-to-leave.png',
+'bufo-just-wanted-you-to-know-this-is-him-trying.jpg',
+'bufo-justice.png',
+'bufo-karen.gif',
+'bufo-keeps-his-password-written-on-a-post-it-note-stuck-to-his-monitor.png',
+'bufo-keyboard.gif',
+'bufo-kills-you-with-kindness.png',
+'bufo-king.png',
+'bufo-kiwi.png',
+'bufo-knife-cries-right.png',
+'bufo-knife-crying-left.gif',
+'bufo-knife-crying-right.gif',
+'bufo-knife-crying.gif',
+'bufo-knife.png',
+'bufo-knows-age-is-just-a-number.png',
+'bufo-knows-his-customers.jpg',
+'bufo-knows-this-is-a-total-bop.gif',
+'bufo-knuckle-sandwich.gif',
+'bufo-knuckles.png',
+'bufo-koi.png',
+'bufo-kudo.png',
+'bufo-kuzco-has-not-learned-his-lesson-yet.png',
+'bufo-kuzco.png',
+'bufo-laser-eyes.jpg',
+'bufo-late-to-the-convo.png',
+'bufo-laugh-xd.png',
+'bufo-laughing-popcorn.png',
+'bufo-laughs-to-mask-the-pain.png',
+'bufo-leads-the-way-to-better-docs.png',
+'bufo-leaves-you-on-seen.png',
+'bufo-left-a-comment.png',
+'bufo-left-multiple-comments.png',
+'bufo-legal-entities.png',
+'bufo-lemon.png',
+'bufo-leprechaun.png',
+'bufo-let-them-eat-cake.png',
+'bufo-lfg.png',
+'bufo-lgtm.png',
+'bufo-liberty-forgot-her-torch.png',
+'bufo-liberty.png',
+'bufo-librarian.png',
+'bufo-lick.gif',
+'bufo-licks-his-hway-out-of-prison.gif',
+'bufo-lies-awake-in-panic.png',
+'bufo-life-saver.png',
+'bufo-likes-that-idea.png',
+'bufo-link.png',
+'bufo-listens-to-his-conscience.png',
+'bufo-lit.gif',
+'bufo-littlefoot-is-upset.png',
+'bufo-loading.gif',
+'bufo-lol-cry.gif',
+'bufo-lol.png',
+'bufo-lolsob.png',
+'bufo-long.png',
+'bufo-lookin-dope.png',
+'bufo-looking-very-much.gif',
+'bufo-looks-a-little-closer.png',
+'bufo-looks-for-a-pull-request.png',
+'bufo-looks-for-an-issue.png',
+'bufo-looks-like-hes-listening-but-hes-not.png',
+'bufo-looks-out-of-the-window.png',
+'bufo-loves-bake-sale-brownies-so-much-that-it-got-him-to-vote-at-the-elementary-school.png',
+'bufo-loves-blobs.png',
+'bufo-loves-disco.png',
+'bufo-loves-doges.gif',
+'bufo-loves-pho.png',
+'bufo-loves-potbelly-sandwich-company.png',
+'bufo-loves-rice-and-beans.png',
+'bufo-loves-ruby.png',
+'bufo-loves-the-lightning.png',
+'bufo-loves-this-song.png',
+'bufo-luigi.png',
+'bufo-lunch.png',
+'bufo-lurk-delurk.gif',
+'bufo-lurk.gif',
+'bufo-lurk.png',
+'bufo-macbook.png',
+'bufo-made-salad.png',
+'bufo-made-you-a-burrito.png',
+'bufo-magician.png',
+'bufo-make-it-rain.gif',
+'bufo-makes-it-rain.png',
+'bufo-makes-the-dream-work.png',
+'bufo-mama-mia-thatsa-one-spicy-a-meatball.png',
+'bufo-marches-with-penguins.png',
+'bufo-marine.png',
+'bufo-mario.png',
+'bufo-mask.png',
+'bufo-matrix.gif',
+'bufo-medal.png',
+'bufo-meltdown.png',
+'bufo-melting.png',
+'bufo-micdrop.gif',
+'bufo-midsommar.png',
+'bufo-midwest-princess.png',
+'bufo-mild-panic.png',
+'bufo-mildly-aggravated.png',
+'bufo-milk.jpg',
+'bufo-mindblown.png',
+'bufo-minecraft-attack.gif',
+'bufo-minecraft-defend.gif',
+'bufo-mischievous.png',
+'bufo-mitosis.gif',
+'bufo-mittens.png',
+'bufo-modern-art.png',
+'bufo-monocle.png',
+'bufo-monstera.png',
+'bufo-morning-starbucks.png',
+'bufo-morning-sun.png',
+'bufo-morning.png',
+'bufo-mrtayto.png',
+'bufo-mushroom.png',
+'bufo-mustache.png',
+'bufo-my-pho.png',
+'bufo-nah.png',
+'bufo-naked.png',
+'bufo-naptime.png',
+'bufo-needs-2fa-but-lost-his-phone.png',
+'bufo-needs-some-hot-tea-to-process-this-news.png',
+'bufo-needs-to-vent.png',
+'bufo-nefarious.png',
+'bufo-nervous-but-cute.png',
+'bufo-nervous.gif',
+'bufo-night.png',
+'bufo-ninja.png',
+'bufo-no-capes.png',
+'bufo-no-more-today-thank-you.gif',
+'bufo-no-prob.png',
+'bufo-no-problem.png',
+'bufo-no-ragrets.png',
+'bufo-no-sleep.png',
+'bufo-no-u.png',
+'bufo-no.gif',
+'bufo-nod.gif',
+'bufo-noodles.gif',
+'bufo-nope.gif',
+'bufo-nosy.png',
+'bufo-not-bad-by-dalle.png',
+'bufo-not-my-problem.png',
+'bufo-not-respecting-your-personal-space.png',
+'bufo-notice-me-senpai.gif',
+'bufo-notification.png',
+'bufo-np.png',
+'bufo-nun.png',
+'bufo-nyc.png',
+'bufo-oatly.png',
+'bufo-oblivious-and-innocent.png',
+'bufo-of-liberty.png',
+'bufo-offering-bufo-offering-bufo-offering-bufo.png',
+'bufo-offers-1.png',
+'bufo-offers-13.png',
+'bufo-offers-2.png',
+'bufo-offers-200.png',
+'bufo-offers-21.png',
+'bufo-offers-3.png',
+'bufo-offers-5.png',
+'bufo-offers-8.png',
+'bufo-offers-a-bagel.png',
+'bufo-offers-a-ball-of-mud.png',
+'bufo-offers-a-banana-in-these-trying-times.png',
+'bufo-offers-a-beer.png',
+'bufo-offers-a-bicycle.png',
+'bufo-offers-a-bolillo-para-el-susto.png',
+'bufo-offers-a-book.png',
+'bufo-offers-a-brain.png',
+'bufo-offers-a-bufo-egg-in-this-trying-time.png',
+'bufo-offers-a-burger.png',
+'bufo-offers-a-cake.png',
+'bufo-offers-a-clover.png',
+'bufo-offers-a-comment.png',
+'bufo-offers-a-cookie.png',
+'bufo-offers-a-deploy-lock.png',
+'bufo-offers-a-factory.png',
+'bufo-offers-a-flan.png',
+'bufo-offers-a-flowchart-to-help-you-navigate-this-workflow.png',
+'bufo-offers-a-focaccia.png',
+'bufo-offers-a-furby.png',
+'bufo-offers-a-gavel.png',
+'bufo-offers-a-generator.png',
+'bufo-offers-a-hario-scale.png',
+'bufo-offers-a-hot-take.png',
+'bufo-offers-a-jetpack-zebra.png',
+'bufo-offers-a-kakapo.png',
+'bufo-offers-a-like.png',
+'bufo-offers-a-little-band-aid-for-a-big-problem.png',
+'bufo-offers-a-llama.png',
+'bufo-offers-a-loading-spinner-spinning.gif',
+'bufo-offers-a-loading-spinner.gif',
+'bufo-offers-a-lock.png',
+'bufo-offers-a-mac-m1-chip.png',
+'bufo-offers-a-pager.png',
+'bufo-offers-a-piece-of-cake.png',
+'bufo-offers-a-pr.png',
+'bufo-offers-a-pull-request.png',
+'bufo-offers-a-rock.png',
+'bufo-offers-a-roomba.png',
+'bufo-offers-a-ruby.png',
+'bufo-offers-a-sandbox.png',
+'bufo-offers-a-shocked-pikachu.png',
+'bufo-offers-a-sigma-dashboard.png',
+'bufo-offers-a-speedy-recovery.png',
+'bufo-offers-a-status.png',
+'bufo-offers-a-taco.gif',
+'bufo-offers-a-telescope.png',
+'bufo-offers-a-tiny-wood-stove.png',
+'bufo-offers-a-torta-ahogada.png',
+'bufo-offers-a-webhook-but-the-logo-is-canonically-correct.png',
+'bufo-offers-a-webhook.png',
+'bufo-offers-a-wednesday.png',
+'bufo-offers-a11y.png',
+'bufo-offers-ai.png',
+'bufo-offers-airwrap.png',
+'bufo-offers-an-airpod-pro.png',
+'bufo-offers-an-easter-egg.png',
+'bufo-offers-an-eclair.png',
+'bufo-offers-an-egg-in-this-trying-time.png',
+'bufo-offers-an-ethernet-cable.png',
+'bufo-offers-an-export-of-your-data.png',
+'bufo-offers-an-extinguisher.png',
+'bufo-offers-an-idea.png',
+'bufo-offers-an-incident.png',
+'bufo-offers-an-issue.png',
+'bufo-offers-an-outage.png',
+'bufo-offers-approval.png',
+'bufo-offers-avocado.png',
+'bufo-offers-bento.png',
+'bufo-offers-big-band-aid-for-a-little-problem.png',
+'bufo-offers-bitcoin.png',
+'bufo-offers-blanket.png',
+'bufo-offers-boba.png',
+'bufo-offers-boss-coffee.png',
+'bufo-offers-box.png',
+'bufo-offers-bufo-cubo.png',
+'bufo-offers-bufo-offers.png',
+'bufo-offers-bufo.png',
+'bufo-offers-bufomelon.png',
+'bufo-offers-calculated-decision-to-leave-tech-debt-for-now-and-clean-it-up-later.png',
+'bufo-offers-caribufo.png',
+'bufo-offers-chart-with-upwards-trend.png',
+'bufo-offers-chatgpt.png',
+'bufo-offers-chrome.png',
+'bufo-offers-coffee.png',
+'bufo-offers-copilot.png',
+'bufo-offers-corn.png',
+'bufo-offers-corporate-red-tape.png',
+'bufo-offers-covid.png',
+'bufo-offers-csharp.png',
+'bufo-offers-d20.png',
+'bufo-offers-datadog.png',
+'bufo-offers-discord.png',
+'bufo-offers-dnd.png',
+'bufo-offers-empty-wallet.png',
+'bufo-offers-f5.png',
+'bufo-offers-factorio.png',
+'bufo-offers-falafel.png',
+'bufo-offers-fart-cloud.png',
+'bufo-offers-firefox.png',
+'bufo-offers-flatbread.png',
+'bufo-offers-footsie.png',
+'bufo-offers-friday.png',
+'bufo-offers-fud.png',
+'bufo-offers-gatorade.png',
+'bufo-offers-git-mailing-list.png',
+'bufo-offers-golden-handcuffs.png',
+'bufo-offers-google-doc.png',
+'bufo-offers-google-drive.png',
+'bufo-offers-google-sheets.png',
+'bufo-offers-hello-kitty.png',
+'bufo-offers-help.png',
+'bufo-offers-hotdog.png',
+'bufo-offers-jira.png',
+'bufo-offers-ldap.png',
+'bufo-offers-lego.png',
+'bufo-offers-model-1857-12-pounder-napoleon-cannon.png',
+'bufo-offers-moneybag.png',
+'bufo-offers-new-jira.png',
+'bufo-offers-nothing.png',
+'bufo-offers-notion.png',
+'bufo-offers-oatmilk.png',
+'bufo-offers-openai.png',
+'bufo-offers-pancakes.png',
+'bufo-offers-pdl-logo.png',
+'bufo-offers-pdl-turkey.png',
+'bufo-offers-peace.png',
+'bufo-offers-peanuts.png',
+'bufo-offers-pineapple.png',
+'bufo-offers-power.png',
+'bufo-offers-prescription-strength-painkillers.png',
+'bufo-offers-python.png',
+'bufo-offers-ramp.png',
+'bufo-offers-s3-bucket.png',
+'bufo-offers-securifriend.png',
+'bufo-offers-slack.png',
+'bufo-offers-solar-eclipse.png',
+'bufo-offers-spam.png',
+'bufo-offers-stash-of-tea-from-the-office-for-the-weekend.png',
+'bufo-offers-stroopwafel.png',
+'bufo-offers-sympathy.png',
+'bufo-offers-tayto.png',
+'bufo-offers-terraform.png',
+'bufo-offers-the-cloud.png',
+'bufo-offers-the-power.png',
+'bufo-offers-the-weeknd.png',
+'bufo-offers-thoughts-and-prayers.png',
+'bufo-offers-thread.png',
+'bufo-offers-thundercats.png',
+'bufo-offers-tim-tams.png',
+'bufo-offers-tree.png',
+'bufo-offers-turkey.png',
+'bufo-offers-turkish-delights.png',
+'bufo-offers-ube.png',
+'bufo-offers-watermelon.png',
+'bufo-offers-you-a-comically-oversized-waffle.png',
+'bufo-offers-you-a-db-for-your-customer-data.png',
+'bufo-offers-you-a-gdpr-compliant-cookie.png',
+'bufo-offers-you-a-kfc-16-piece-family-size-bucket-of-fried-chicken.png',
+'bufo-offers-you-a-monster-early-in-the-morning.png',
+'bufo-offers-you-a-pint-m8.png',
+'bufo-offers-you-a-red-bull-early-in-the-morning.png',
+'bufo-offers-you-a-suspiciously-not-urgent-ticket.png',
+'bufo-offers-you-an-urgent-ticket.png',
+'bufo-offers-you-dangerously-high-rate-limits.png',
+'bufo-offers-you-his-crypto-before-he-pumps-and-dumps-it.png',
+'bufo-offers-you-logs.png',
+'bufo-offers-you-money-in-this-trying-time.png',
+'bufo-offers-you-the-best-emoji-culture-ever.png',
+'bufo-offers-you-the-moon.png',
+'bufo-offers-you-the-world.png',
+'bufo-offers-yubikey.png',
+'bufo-offers-zendesk.png',
+'bufo-office.png',
+'bufo-oh-hai.png',
+'bufo-oh-no.png',
+'bufo-oh-yeah.png',
+'bufo-ok.png',
+'bufo-okay-pretty-salty-now.png',
+'bufo-old.png',
+'bufo-olives.png',
+'bufo-omg.png',
+'bufo-on-fire-but-still-excited.png',
+'bufo-on-the-ceiling.png',
+'bufo-oncall-secondary.gif',
+'bufo-onion.png',
+'bufo-open-mic.png',
+'bufo-opens-a-haberdashery.png',
+'bufo-orange.png',
+'bufo-oreilly.png',
+'bufo-pager-duty.png',
+'bufo-pajama-party.gif',
+'bufo-palpatine.png',
+'bufo-panic.png',
+'bufo-parrot.gif',
+'bufo-party-birthday.png',
+'bufo-party-conga-line.gif',
+'bufo-party.gif',
+'bufo-passed-the-load-test.png',
+'bufo-passes-the-vibe-check.png',
+'bufo-pat.gif',
+'bufo-peaks-on-you-from-above.png',
+'bufo-peaky-blinder.png',
+'bufo-pear.png',
+'bufo-pearly-whites.png',
+'bufo-peek-wall.png',
+'bufo-peek.png',
+'bufo-peeking.gif',
+'bufo-penguin.png',
+'bufo-pensivity-turned-discomfort-upon-realization-of-reality.gif',
+'bufo-phew.png',
+'bufo-phonecall.png',
+'bufo-photographer.png',
+'bufo-picked-you-a-flower.png',
+'bufo-pikmin.png',
+'bufo-pilgrim.png',
+'bufo-pilot.png',
+'bufo-pinch-hitter.png',
+'bufo-pineapple.png',
+'bufo-ping.png',
+'bufo-pirate.png',
+'bufo-pitchfork.png',
+'bufo-pitchforks.png',
+'bufo-pizza-hut.png',
+'bufo-placeholder.png',
+'bufo-platformizes.jpg',
+'bufo-plays-some-smooth-jazz-intensity-1.gif',
+'bufo-plays-some-smooth-jazz.png',
+'bufo-pleading-1.png',
+'bufo-pleading.png',
+'bufo-please.png',
+'bufo-pog-surprise.png',
+'bufo-pog.png',
+'bufo-pointing-at-you.png',
+'bufo-pointing-down-there.gif',
+'bufo-pointing-over-there.gif',
+'bufo-pointing-right-there.gif',
+'bufo-pointing-up-there.gif',
+'bufo-police.png',
+'bufo-poliwhirl.png',
+'bufo-ponders-2.png',
+'bufo-ponders-3.png',
+'bufo-ponders.png',
+'bufo-poo.png',
+'bufo-poof.gif',
+'bufo-popcorn.gif',
+'bufo-popping-out-of-the-coffee-upsidedown.gif',
+'bufo-popping-out-of-the-coffee.gif',
+'bufo-popping-out-of-the-toilet.gif',
+'bufo-pops-by.gif',
+'bufo-pops-out-for-a-quick-bite-to-eat.png',
+'bufo-possessed.png',
+'bufo-potato.png',
+'bufo-pours-one-out.gif',
+'bufo-praise.png',
+'bufo-pray-partying.png',
+'bufo-pray.png',
+'bufo-praying-his-qa-is-on-point.png',
+'bufo-prays-for-this-to-be-over-already-intensifies.gif',
+'bufo-prays-for-this-to-be-over-already.png',
+'bufo-prays-to-azure.png',
+'bufo-prays-to-nvidia.png',
+'bufo-prays-to-pagerduty.png',
+'bufo-preach.png',
+'bufo-presents-to-the-bufos.png',
+'bufo-pretends-to-have-authority.png',
+'bufo-pretty-dang-sad.png',
+'bufo-pride.gif',
+'bufo-psychic.png',
+'bufo-pumpkin-head.png',
+'bufo-pumpkin.png',
+'bufo-purple-wig.png',
+'bufo-pushes-to-prod.gif',
+'bufo-put-on-active-noise-cancelling-headphones-but-can-still-hear-you.png',
+'bufo-quadruple-vaccinated.png',
+'bufo-question.png',
+'bufo-rad.png',
+'bufo-rainbow-moustache.png',
+'bufo-rainbow.gif',
+'bufo-raised-hand.png',
+'bufo-ramen.gif',
+'bufo-reading.png',
+'bufo-reads-and-analyzes-doc-intensifies.gif',
+'bufo-reads-and-analyzes-doc.png',
+'bufo-red-flags.gif',
+'bufo-red-sox.png',
+'bufo-redacted.png',
+'bufo-regret.png',
+'bufo-remains-perturbed-from-the-void.png',
+'bufo-remembers-bad-time.png',
+'bufo-returns-to-the-void.png',
+'bufo-retweet.png',
+'bufo-reverse.png',
+'bufo-review.png',
+'bufo-revokes-his-approval.png',
+'bufo-rich.png',
+'bufo-rick.png',
+'bufo-rides-in-style.png',
+'bufo-riding-goose.gif',
+'bufo-riot.gif',
+'bufo-rip.png',
+'bufo-roasted.png',
+'bufo-robs-you.gif',
+'bufo-rocket.png',
+'bufo-rofl.png',
+'bufo-roll-fast.gif',
+'bufo-roll-safe.png',
+'bufo-roll-the-dice.png',
+'bufo-roll.gif',
+'bufo-rolling-out.png',
+'bufo-rose.png',
+'bufo-ross.png',
+'bufo-royalty-sparkle.gif',
+'bufo-royalty.png',
+'bufo-rude.png',
+'bufo-rudolph.gif',
+'bufo-run-right.gif',
+'bufo-run.gif',
+'bufo-rush.png',
+'bufo-sad-baguette.png',
+'bufo-sad-but-ok.png',
+'bufo-sad-rain.gif',
+'bufo-sad-swinging.gif',
+'bufo-sad-vibe.gif',
+'bufo-sad.png',
+'bufo-sailor-moon.png',
+'bufo-salad.png',
+'bufo-salivating.png',
+'bufo-salty.png',
+'bufo-salute.png',
+'bufo-same.png',
+'bufo-santa.png',
+'bufo-saves-hyrule.png',
+'bufo-says-good-morning-to-test-the-waters.png',
+'bufo-scheduled.png',
+'bufo-science-intensifies.gif',
+'bufo-science.png',
+'bufo-scientist-intensifies.gif',
+'bufo-scientist.png',
+'bufo-screams-into-the-ambient-void.png',
+'bufo-security-jacket.png',
+'bufo-sees-what-you-did-there.png',
+'bufo-segway.png',
+'bufo-sends-a-demand-signal.gif',
+'bufo-sends-to-print.gif',
+'bufo-sends-you-to-the-shadow-realm.png',
+'bufo-shakes-up-your-etch-a-sketch.png',
+'bufo-shaking-eyes.gif',
+'bufo-shaking-head.gif',
+'bufo-shame.png',
+'bufo-shares-his-banana.png',
+'bufo-sheesh.png',
+'bufo-shh-barking-puppy.png',
+'bufo-shh.png',
+'bufo-shifty.gif',
+'bufo-ship.png',
+'bufo-shipit.png',
+'bufo-shipping.gif',
+'bufo-shower.png',
+'bufo-showing-off-baby.png',
+'bufo-showing-off-babypilot.png',
+'bufo-shredding.gif',
+'bufo-shrek-but-canonically-correct.png',
+'bufo-shrek.png',
+'bufo-shrooms.png',
+'bufo-shrug.png',
+'bufo-shy.gif',
+'bufo-sigh.png',
+'bufo-silly-goose-dance.gif',
+'bufo-silly.png',
+'bufo-simba.png',
+'bufo-single-tear.png',
+'bufo-sinks.gif',
+'bufo-sip.png',
+'bufo-sipping-on-juice.png',
+'bufo-sips-coffee.gif',
+'bufo-siren.gif',
+'bufo-sit.png',
+'bufo-sith.gif',
+'bufo-skeledance.gif',
+'bufo-skellington-1.png',
+'bufo-skellington.png',
+'bufo-skiing.png',
+'bufo-slay.png',
+'bufo-slaying-tho.png',
+'bufo-sleep.png',
+'bufo-slinging-bagels.png',
+'bufo-slowest-rubber-stamp-in-the-west.png',
+'bufo-slowly-heads-out.gif',
+'bufo-slowly-lurks-in.gif',
+'bufo-smile.png',
+'bufo-smirk.png',
+'bufo-smol.png',
+'bufo-smug.png',
+'bufo-smugo.png',
+'bufo-snail.png',
+'bufo-snaps-a-pic.png',
+'bufo-snore.png',
+'bufo-snow.png',
+'bufo-sobbing.gif',
+'bufo-soccer.png',
+'bufo-softball.png',
+'bufo-sombrero.png',
+'bufo-speaking-math.png',
+'bufo-spider.png',
+'bufo-spit.png',
+'bufo-spooky-szn.png',
+'bufo-sports.png',
+'bufo-squad.gif',
+'bufo-squash.png',
+'bufo-sriracha.png',
+'bufo-stab-murder.gif',
+'bufo-stab-reverse.gif',
+'bufo-stab.gif',
+'bufo-stamp.png',
+'bufo-standing.png',
+'bufo-stare.png',
+'bufo-stargazing.png',
+'bufo-stars-in-a-old-timey-talkie.png',
+'bufo-starstruck.png',
+'bufo-stay-puft-marshmallow.png',
+'bufo-steals-your-thunder.png',
+'bufo-stick-reverse.gif',
+'bufo-stick.gif',
+'bufo-stole-caribufos-antler.png',
+'bufo-stole-your-crunchwrap-before-you-could-finish-it.png',
+'bufo-stoned.png',
+'bufo-stonks.png',
+'bufo-stonks2.png',
+'bufo-stop.gif',
+'bufo-stop.png',
+'bufo-stopsign.gif',
+'bufo-strains-his-neck.png',
+'bufo-strange.png',
+'bufo-strawberry.png',
+'bufo-stress-sweat.gif',
+'bufo-strikes-a-deal.png',
+'bufo-strikes-the-match-he\u2019s-ready-for-inferno.png',
+'bufo-stripe.png',
+'bufo-stuffed.png',
+'bufo-style.png',
+'bufo-sun-bless.png',
+'bufo-sunny-side-up.png',
+'bufo-surf.png',
+'bufo-sus.png',
+'bufo-sushi.png',
+'bufo-sussy-eyebrows.gif',
+'bufo-sweat.png',
+'bufo-sweep.png',
+'bufo-sweet-dreams.png',
+'bufo-sweet-potato.png',
+'bufo-swims.png',
+'bufo-sword.png',
+'bufo-taco.png',
+'bufo-tada.png',
+'bufo-take-my-money.png',
+'bufo-takes-a-bath.png',
+'bufo-takes-bufo-give.png',
+'bufo-takes-five-corndogs-to-the-movies-by-himself-as-his-me-time.png',
+'bufo-takes-hotdog.png',
+'bufo-takes-slack.png',
+'bufo-takes-spam.png',
+'bufo-takes-your-approval.png',
+'bufo-takes-your-boba.png',
+'bufo-takes-your-bufo-taco.png',
+'bufo-takes-your-burrito.png',
+'bufo-takes-your-copilot.png',
+'bufo-takes-your-fud-away.png',
+'bufo-takes-your-golden-handcuffs.png',
+'bufo-takes-your-incident.png',
+'bufo-takes-your-nose.png',
+'bufo-takes-your-pizza.png',
+'bufo-takes-yubikey.png',
+'bufo-takes-zoom.png',
+'bufo-talks-to-brick-wall.gif',
+'bufo-tapioca-pearl.png',
+'bufo-tea.png',
+'bufo-teal.png',
+'bufo-tears-of-joy.png',
+'bufo-tense.png',
+'bufo-tequila.png',
+'bufo-thanks-bufo-for-thanking-bufo.png',
+'bufo-thanks-the-sr-bufo-for-their-wisdom.png',
+'bufo-thanks-you-for-the-approval.png',
+'bufo-thanks-you-for-the-bufo.png',
+'bufo-thanks-you-for-the-comment.png',
+'bufo-thanks-you-for-the-new-bufo.png',
+'bufo-thanks-you-for-your-issue.png',
+'bufo-thanks-you-for-your-pr.png',
+'bufo-thanks-you-for-your-service.png',
+'bufo-thanks.png',
+'bufo-thanksgiving.png',
+'bufo-thanos.png',
+'bufo-thats-a-knee-slapper.png',
+'bufo-the-builder.png',
+'bufo-the-crying-osha-compliant-builder.png',
+'bufo-the-osha-compliant-builder.png',
+'bufo-think.png',
+'bufo-thinking-about-holidays.png',
+'bufo-thinking.png',
+'bufo-thinks-about-a11y.png',
+'bufo-thinks-about-azure-front-door-intensifies.gif',
+'bufo-thinks-about-azure-front-door.gif',
+'bufo-thinks-about-azure.png',
+'bufo-thinks-about-cheeky-nandos.png',
+'bufo-thinks-about-chocolate.png',
+'bufo-thinks-about-climbing.png',
+'bufo-thinks-about-docs.gif',
+'bufo-thinks-about-fishsticks.gif',
+'bufo-thinks-about-mountains.png',
+'bufo-thinks-about-omelette.png',
+'bufo-thinks-about-pancakes.gif',
+'bufo-thinks-about-quarter.gif',
+'bufo-thinks-about-redis.gif',
+'bufo-thinks-about-rubberduck.png',
+'bufo-thinks-about-slack.png',
+'bufo-thinks-about-steak.png',
+'bufo-thinks-about-steakholder.png',
+'bufo-thinks-about-teams.png',
+'bufo-thinks-about-telemetry.png',
+'bufo-thinks-about-terraform.gif',
+'bufo-thinks-about-ufo.gif',
+'bufo-thinks-about-vacation.gif',
+'bufo-thinks-about.png',
+'bufo-thinks-he-gets-paid-too-much-to-work-here.png',
+'bufo-thinks-of-shamenun.gif',
+'bufo-thinks-this-is-a-total-bop.gif',
+'bufo-this-is-fine.png',
+'bufo-this.png',
+'bufo-this2.png',
+'bufo-thonk.png',
+'bufo-thonks-from-the-void.png',
+'bufo-threatens-to-hit-you-with-the-chancla-and-he-means-it.png',
+'bufo-threatens-to-thwack-you-with-a-slipper-and-he-means-it.png',
+'bufo-throws-brick.gif',
+'bufo-thumbsup.png',
+'bufo-thunk.png',
+'bufo-thwack.gif',
+'bufo-timeout.png',
+'bufo-tin-foil-hat.gif',
+'bufo-tin-foil-hat2.png',
+'bufo-tips-hat.png',
+'bufo-tired-of-rooting-for-the-anti-hero.png',
+'bufo-tired-yes.gif',
+'bufo-tired.png',
+'bufo-toad.png',
+'bufo-toast.png',
+'bufo-tofu.png',
+'bufo-toilet-rocket.gif',
+'bufo-tomato.png',
+'bufo-tongue.gif',
+'bufo-too-many-pings.gif',
+'bufo-took-too-much.gif',
+'bufo-tooth.png',
+'bufo-tophat.png',
+'bufo-tortoise.png',
+'bufo-torus.gif',
+'bufo-trailhead.png',
+'bufo-train.png',
+'bufo-transfixed.png',
+'bufo-transmutes-reality.gif',
+'bufo-trash-can.png',
+'bufo-travels.png',
+'bufo-tries-not-to-laugh.png',
+'bufo-tries-some-yummy-yummy-crossplane.png',
+'bufo-tries-to-fight-you-but-his-arms-are-too-short-so-count-yourself-lucky.gif',
+'bufo-tries-to-hug-you-back-but-his-arms-are-too-short.png',
+'bufo-tries-to-hug-you-but-his-arms-are-too-short.png',
+'bufo-tries-to-play-it-cool-while-smuggling-a-chipotle-burrito-into-the-movie-theater.png',
+'bufo-triple-vaccinated.png',
+'bufo-tripping.gif',
+'bufo-trying-to-relax-while-procrastinating-but-its-not-working.png',
+'bufo-turns-the-tables.png',
+'bufo-tux.png',
+'bufo-typing.gif',
+'bufo-u-dead.png',
+'bufo-ufo.png',
+'bufo-ugh.png',
+'bufo-uh-okay-i-guess-so.png',
+'bufo-uhhh.png',
+'bufo-underpaid-postage-at-usps-and-now-they\u2019re-coming-after-him-for-the-money-he-owes.png',
+'bufo-unicorn.png',
+'bufo-universe.png',
+'bufo-unlocked-transdimensional-travel-while-in-the-void.png',
+'bufo-uno.png',
+'bufo-upvote.png',
+'bufo-uses-100-percent-of-his-brain.png',
+'bufo-uses-his-birthday-wish-to-try-to-bring-rainforest-cafe-back.png',
+'bufo-uwu.png',
+'bufo-vaccinated.png',
+'bufo-vaccinates-you.png',
+'bufo-vampire.png',
+'bufo-venom.png',
+'bufo-ventilator.png',
+'bufo-very-angry-intesifies.gif',
+'bufo-very-angry.png',
+'bufo-vibe-dance.gif',
+'bufo-vibe.gif',
+'bufo-vomit.png',
+'bufo-voted.png',
+'bufo-waddle.gif',
+'bufo-waiting-for-aws-to-deep-archive-our-data.png',
+'bufo-waiting-for-azure.png',
+'bufo-waits-in-queue.png',
+'bufo-waldo.png',
+'bufo-walk-away.gif',
+'bufo-wallop.png',
+'bufo-wants-a-refund.gif',
+'bufo-wants-to-have-a-calm-and-civilized-conversation-with-you.png',
+'bufo-wants-to-know-your-spaghetti-policy-at-the-movies.png',
+'bufo-wants-to-return-his-vacuum-that-he-bought-at-costco-four-years-ago-for-a-full-refund.png',
+'bufo-wants-you-to-buy-his-crypto.gif',
+'bufo-wants-you.png',
+'bufo-wards-off-the-evil-spirits.gif',
+'bufo-warhol.png',
+'bufo-was-eavesdropping-and-got-offended-by-your-convo-but-now-has-to-pretend-he-didnt-hear-you.png',
+'bufo-was-in-paris.png',
+'bufo-wat.png',
+'bufo-watches-from-a-distance.png',
+'bufo-watches-the-rain.gif',
+'bufo-watching-the-clock.png',
+'bufo-watermelon.png',
+'bufo-wave.gif',
+'bufo-waves-hello-from-the-void.png',
+'bufo-wears-a-paper-crown.png',
+'bufo-wears-the-cone-of-shame.png',
+'bufo-wedding.png',
+'bufo-welcome.png',
+'bufo-welp.png',
+'bufo-whack.gif',
+'bufo-what-are-you-doing-with-that.png',
+'bufo-what-did-you-just-say.png',
+'bufo-what-have-i-done.png',
+'bufo-what-have-you-done.png',
+'bufo-what-if.png',
+'bufo-whatever.png',
+'bufo-whew.png',
+'bufo-whisky.png',
+'bufo-who-me.gif',
+'bufo-wholesome.png',
+'bufo-why-must-it-all-be-this-way.gif',
+'bufo-why-must-it-be-this-way.png',
+'bufo-wicked.png',
+'bufo-wide.png',
+'bufo-wider-01.png',
+'bufo-wider-02.png',
+'bufo-wider-03.png',
+'bufo-wider-04.png',
+'bufo-wields-mjolnir.png',
+'bufo-wields-the-hylian-shield.png',
+'bufo-will-miss-you.gif',
+'bufo-will-never-walk-cornelia-street-again.gif',
+'bufo-will-not-be-going-to-space-today.png',
+'bufo-wine.gif',
+'bufo-wink.gif',
+'bufo-wishes-you-a-happy-valentines-day.png',
+'bufo-with-a-drive-by-hot-take.gif',
+'bufo-with-a-fresh-do.png',
+'bufo-with-a-pearl-earring.png',
+'bufo-wizard-magic-charge.gif',
+'bufo-wizard.gif',
+'bufo-wonders-if-deliciousness-of-this-cheese-is-worth-the-pain-his-lactose-intolerance-will-cause.png',
+'bufo-woop.png',
+'bufo-workin-up-a-sweat-after-eating-a-wendys-double-loaded-double-baked-baked-potato-during-summer.png',
+'bufo-worldstar.png',
+'bufo-worried.png',
+'bufo-worry-coffee.png',
+'bufo-worry.png',
+'bufo-would-like-a-bite-of-your-cookie.png',
+'bufo-writes-a-doc.png',
+'bufo-wtf.gif',
+'bufo-wut.png',
+'bufo-yah.png',
+'bufo-yankees-fan-is-waiting-for-the-right-time-to-ask-how-youre-doing.png',
+'bufo-yankees.png',
+'bufo-yay-awkward-eyes.gif',
+'bufo-yay-confetti.gif',
+'bufo-yay-judge.gif',
+'bufo-yay.gif',
+'bufo-yayy.png',
+'bufo-yeehaw.png',
+'bufo-yells-at-old-bufo.png',
+'bufo-yes.png',
+'bufo-yismail.png',
+'bufo-you-sure-about-that.png',
+'bufo-yugioh.png',
+'bufo-yummy.png',
+'bufo-zoom-right.gif',
+'bufo-zoom.gif',
+'bufo.png',
+'bufo\u2019s-a-gamer-girl-but-specifically-nyt-games.png',
+'bufo+1.png',
+'bufoberries.png',
+'bufobot.png',
+'bufochu.png',
+'bufocopter.png',
+'bufoda.png',
+'bufodile.png',
+'bufofoop.gif',
+'bufoheimer.png',
+'bufohub.png',
+'bufolatro.png',
+'bufoling.png',
+'bufolo.png',
+'bufolta.png',
+'bufonana.png',
+'bufone.png',
+'bufonomical.png',
+'bufopilot.png',
+'bufopoof.gif',
+'buforang.png',
+'buforce-be-with-you.png',
+'buforead.png',
+'buforever.gif',
+'bufos-got-your-back.png',
+'bufos-in-love.png',
+'bufos-jumping-on-the-bed.gif',
+'bufos-lips-are-sealed.png',
+'bufovacado.png',
+'bufowhirl.png',
+'bufrogu.png',
+'but-wait-theres-bufo.png',
+'child-bufo-only-has-deku-sticks-to-save-hyrule.png',
+'chonky-bufo-wants-to-be-held.png',
+'christmas-bufo-on-a-goose.gif',
+'circle-of-bufo.png',
+'confused-math-bufo.png',
+'constipated-bufo-is-trying-his-hardest.gif',
+'copper-bufo.png',
+'corporate-bufo-demands-more-ai-slop.gif',
+'corrupted-bufo.png',
+'count-bufo.png',
+'daily-dose-of-bufo-vitamins.png',
+'dalmatian-bufo.png',
+'death-by-a-thousand-bufo-stabs.gif',
+'doctor-bufo.png',
+'dont-make-bufo-tap-the-sign.png',
+'double-bufo-sideeye.png',
+'egg-bufo.png',
+'eggplant-bufo.png',
+'et-tu-bufo.png',
+'everybody-loves-bufo.png',
+'existential-bufo.gif',
+'feelsgoodbufo.png',
+'fix-it-bufo.png',
+'friendly-neighborhood-bufo.png',
+'future-bufos.png',
+'get-in-lets-bufo.png',
+'get-out-of-bufos-swamp.png',
+'ghost-bufo-of-future-past-is-disappointed-in-your-lack-of-foresight.png',
+'gold-bufo.png',
+'good-news-bufo-offers-suppository.png',
+'google-sheet-bufo.jpg',
+'great-white-bufo.png',
+'happy-bufo-brings-you-a-deescalation-coffee.png',
+'happy-bufo-brings-you-a-deescalation-tea.png',
+'heavy-is-the-bufo-that-wears-the-crown.png',
+'holiday-bufo-offers-you-a-candy-cane.png',
+'house-of-bufo.jpg',
+'i-dont-trust-bufo.png',
+'i-heart-bufo.png',
+'i-think-you-should-leave-with-bufo.gif',
+'if-bufo-fits-bufo-sits.png',
+'interdimensional-bufo-rests-atop-the-terrarium-of-existence.png',
+'it-takes-a-bufo-to-know-a-bufo.png',
+'its-been-such-a-long-day-that-bufo-doesnt-really-care-anymore.png',
+'just-a-bunch-of-bufos.png',
+'just-hear-bufo-out-for-a-sec.png',
+'kermit-the-bufo.png',
+'king-bufo.png',
+'kirbufo.png',
+'le-bufo.png',
+'live-laugh-bufo.png',
+'loch-ness-bufo.png',
+'looks-good-to-bufo.png',
+'low-fidelity-bufo-cant-believe-youve-done-this.png',
+'low-fidelity-bufo-concerned.png',
+'low-fidelity-bufo-excited.png',
+'low-fidelity-bufo-gets-whiplash.png',
+'lunar-new-year-bufo.png',
+'m-bufo.png',
+'maam-this-is-a-bufo.png',
+'many-bufos.png',
+'mardi-gras-bufo.png',
+'maybe-a-bufo-bigfoot.png',
+'mega-bufo.png',
+'mrs-bufo.png',
+'my-name-is-buford-and-i-am-bufo\u2019s-father.png',
+'nobufo.png',
+'not-bufo.png',
+'nothing-inauthentic-bout-this-bufo-yeah-hes-the-real-thing-baby.png',
+'old-bufo-yells-at-cloud.jpg',
+'old-bufo-yells-at-hubble.png',
+'old-man-yells-at-bufo.png',
+'old-man-yells-at-old-bufo.png',
+'one-of-101-bufos.png',
+'our-bufo-is-in-another-castle.png',
+'paper-bufo.png',
+'party-bufo.gif',
+'pixel-bufo.jpg',
+'planet-bufo.gif',
+'please-converse-using-only-bufo.png',
+'poison-dart-bufo.png',
+'pour-one-out-for-bufo.gif',
+'press-x-to-bufo.png',
+'princebufo.png',
+'proud-bufo-is-excited.gif',
+'radioactive-bufo.gif',
+'sad-bufo.png',
+'safe-driver-bufo.png',
+'se\u00f1or-bufo.png',
+'shiny-bufo.gif',
+'shut-up-and-take-my-bufo.png',
+'silver-bufo.png',
+'sir-bufo-esquire.png',
+'sir-this-is-a-bufo.png',
+'sleepy-bufo.png',
+'smol-bufo-feels-blessed.png',
+'smol-bufo-has-a-smol-pull-request-that-needs-reviews-and-he-promises-it-will-only-take-a-minute.png',
+'so-bufoful.gif',
+'spider-bufo.png',
+'spotify-wrapped-reminded-bufo-his-listening-patterns-are-a-little-unhinged.png',
+'strung-out-bufo.png',
+'super-bufo-bros.png',
+'super-bufo.png',
+'tabufo.png',
+'teamwork-makes-the-bufo-work.png',
+'ted-bufo.png',
+'the_bufo_formerly_know_as_froge.png',
+'the-bufo-nightmare-before-christmas.png',
+'the-bufo-we-deserve.png',
+'the-bufos-new-groove.png',
+'the-creation-of-bufo.png',
+'the-more-you-bufo.png',
+'the-pinkest-bufo-there-ever-was.png',
+'theres-a-bufo-for-that.png',
+'this-8-dollar-starbucks-drink-isnt-helping-bufo-feel-any-better.png',
+'this-is-bufo.png',
+'this-will-be-bufos-little-secret.gif',
+'triumphant-bufo.png',
+'tsa-bufo-gropes-you.png',
+'two-bufos-beefin.png',
+'up-and-to-the-bufo.png',
+'vacation-bufo-is-vacationing.png',
+'vin-bufo.png',
+'vintage-bufo.png',
+'whatever-youre-doing-its-attracting-the-bufos.png',
+'when-bufo-falls-in-love.png',
+'whenlifegetsatbufo.png',
+'with-friends-like-this-bufo-doesnt-need-enemies.png',
+'wreck-it-bufo.png',
+'wrong-frog.png',
+'yay-bufo-1.gif',
+'yay-bufo-2.gif',
+'yay-bufo-3.gif',
+'yay-bufo-4.gif',
+'you-have-awoken-the-bufo.png',
+'you-have-exquisite-taste-in-bufo.png',
+'you-left-your-typewriter-at-bufos-apartment.png',
+];
+
+const IMG_BASE = './all-the-bufo/';
+const DB_NAME = 'bufo-react-embeddings';
+const DB_VERSION = 4;
+const BATCH_SIZE = 64;
+
+const MOODS = {
+  celebratory: { emoji: '🎉', desc: 'celebrating party happy excited good news congratulations achievement victory winning success hooray cheers' },
+  sad:         { emoji: '😢', desc: 'sad upset crying depressed disappointed heartbroken melancholy grief mourning unhappy gloomy' },
+  angry:       { emoji: '😠', desc: 'angry mad furious rage frustrated annoyed irritated hostile aggressive enraged livid' },
+  anxious:     { emoji: '😰', desc: 'nervous worried stressed panic overwhelmed anxious tense uneasy dread fearful sweating' },
+  funny:       { emoji: '😂', desc: 'laughing lol hilarious comedy joke silly ridiculous absurd humor amusing goofy' },
+  love:        { emoji: '❤️', desc: 'love heart romance affection crush valentine adore cherish passionate caring' },
+  tired:       { emoji: '😴', desc: 'tired exhausted sleepy done burned out need rest fatigued drained worn out yawning' },
+  confused:    { emoji: '🤔', desc: 'confused puzzled what huh bewildered lost perplexed uncertain questioning wondering' },
+  cool:        { emoji: '😎', desc: 'cool confident swagger flex boss smooth stylish impressive awesome radical' },
+  scared:      { emoji: '😱', desc: 'scared afraid terrified horror spooky frightened creepy eerie startled jump scare' },
+  grateful:    { emoji: '🙏', desc: 'thanks grateful appreciation blessed thankful gratitude thank you acknowledge' },
+  supportive:  { emoji: '🤗', desc: 'support comfort hug encouragement caring helpful kind generous pat on back there for you' },
+  working:     { emoji: '💻', desc: 'working coding busy productivity deadline office meeting computer programming typing' },
+  hungry:      { emoji: '🍕', desc: 'food hungry eating drinking coffee lunch snack meal delicious cooking yummy nom' },
+  greeting:    { emoji: '👋', desc: 'hello hi wave welcome good morning greetings howdy hey there arriving' },
+  farewell:    { emoji: '👋', desc: 'goodbye bye leaving see you farewell departing heading out exit going away' },
+  disapproval: { emoji: '👎', desc: 'no disapproval rejection refuse decline judging shame disappointed nope stop' },
+  surprise:    { emoji: '😲', desc: 'surprised shocked amazed astonished wow mind blown unexpected incredible unbelievable' },
+  mischievous: { emoji: '😏', desc: 'sneaky mischievous naughty devious plotting scheming suspicious sly cunning trouble' },
+  chill:       { emoji: '😌', desc: 'calm peaceful serene tranquil relaxed zen meditation chill vibing content cozy' },
+};
+
+function fileToDescription(filename) {
+  let desc = filename
+    .replace(/\.(png|gif|jpg)$/, '')
+    .replace(/bufo\+1/, 'plus one approval thumbs up')
+    .replace(/[_-]+/g, ' ')
+    .trim();
+  desc = desc.replace(/\bbufo'?s?\b/gi, '').replace(/\s{2,}/g, ' ').trim();
+  if (desc.length < 2) {
+    desc = filename.replace(/\.(png|gif|jpg)$/, '').replace(/[_-]+/g, ' ').trim();
+  }
+  return enrichDescription(desc);
+}
+
+function enrichDescription(desc) {
+  let d = desc;
+  d = d.replace(/^offers\s+/i, 'offering giving ');
+  d = d.replace(/^gives\s+/i, 'giving offering ');
+  d = d.replace(/^takes\s+/i, 'taking stealing grabbing ');
+  d = d.replace(/^thinks about\s+/i, 'thinking about contemplating ');
+  d = d.replace(/^prays to\s+/i, 'praying to worshipping ');
+  d = d.replace(/^loves\s+/i, 'loving enjoys loves ');
+  d = d.replace(/^wants\s+/i, 'wanting desiring ');
+  d = d.replace(/^tries to\s+/i, 'trying attempting to ');
+  d = d.replace(/^breaks\s+/i, 'breaking destroying ');
+  d = d.replace(/^heralds\s+/i, 'announcing heralding ');
+  d = d.replace(/^wields\s+/i, 'wielding holding carrying ');
+  d = d.replace(/^thanks\s+/i, 'thanking grateful appreciation ');
+  d = d.replace(/^drinking\s+/i, 'drinking beverage sipping ');
+
+  const synonymMap = {
+    'happy': 'joyful cheerful glad delighted',
+    'happy hour': 'drinks after work going out celebration socializing bar',
+    'sad': 'unhappy depressed down upset melancholy',
+    'angry': 'mad furious upset rage annoyed irritated',
+    'tired': 'exhausted sleepy fatigued drained worn out need rest',
+    'sleep': 'sleeping tired nap rest exhausted snooze',
+    'cry': 'crying tears upset weeping sobbing',
+    'crying': 'tears upset weeping sobbing emotional',
+    'approve': 'approval thumbs up looks good lgtm yes agreed',
+    'lgtm': 'looks good to me approved approval',
+    'love': 'heart romance affection adore cherish',
+    'heart': 'love affection romance care',
+    'party': 'celebration celebrate festive fun dancing',
+    'celebrate': 'celebration party cheers congratulations hooray',
+    'congrats': 'congratulations celebration well done achievement',
+    'scared': 'afraid frightened terrified fear nervous',
+    'panic': 'panicking scared anxious stressed freaking out',
+    'confused': 'puzzled bewildered perplexed uncertain lost',
+    'excited': 'enthusiastic thrilled pumped stoked hyped eager',
+    'hype': 'excited hyped pumped enthusiastic lets go',
+    'dead': 'dying rip done finished over kaput',
+    'cool': 'awesome rad stylish impressive chill',
+    'fire': 'hot burning flames lit amazing on fire',
+    'hug': 'embrace comfort support affection warmth',
+    'cuddle': 'hug snuggle cozy comfort warm affection',
+    'dance': 'dancing groove moves vibing celebrating',
+    'dancing': 'dance groove moves vibing celebrating',
+    'fight': 'fighting combat battle aggressive confrontation',
+    'run': 'running sprint escape flee hurry',
+    'eat': 'eating food hungry snack meal nom',
+    'eating': 'food hungry snack meal nom delicious',
+    'coffee': 'caffeine morning wake up energy espresso latte',
+    'beer': 'drinks alcohol pub bar cheers drinking',
+    'wine': 'drinks alcohol celebration toast drinking',
+    'money': 'cash dollars rich wealth payment finance',
+    'smile': 'smiling happy grin pleased cheerful',
+    'laugh': 'laughing funny hilarious lol haha comedy',
+    'lol': 'laughing funny hilarious haha comedy rofl',
+    'stare': 'staring watching looking glare gaze',
+    'peek': 'peeking spying looking watching sneaky',
+    'lurk': 'lurking hiding watching sneaky quiet observing',
+    'wave': 'waving hello hi greeting goodbye',
+    'clap': 'clapping applause bravo congratulations',
+    'salute': 'respect honor military duty o7',
+    'pray': 'praying hope please begging wishing desperate',
+    'shrug': 'whatever idk dont know uncertain meh',
+    'wink': 'winking flirty playful suggestive sly',
+    'nervous': 'anxious worried uneasy tense stressed',
+    'worried': 'anxious concerned nervous uneasy stress',
+    'broke': 'poor no money bankrupt struggling penniless',
+    'rich': 'wealthy money loaded affluent',
+    'judge': 'judging judgmental disapproval skeptical side eye',
+    'shame': 'ashamed embarrassed disgrace guilty',
+    'proud': 'pride achievement accomplishment success',
+    'bless': 'blessing holy prayer grateful thankful',
+    'thanks': 'thank you grateful appreciation gratitude',
+    'welcome': 'greeting hello reception hi',
+    'morning': 'good morning sunrise wake up dawn early',
+    'night': 'nighttime evening bedtime dark sleep late',
+    'christmas': 'xmas holiday festive winter santa gifts',
+    'halloween': 'spooky scary costume trick or treat october',
+    'spooky': 'scary halloween creepy frightening eerie',
+    'birthday': 'celebration party cake candles age',
+    'wedding': 'marriage love bride groom ceremony',
+    'vacation': 'holiday travel relaxation time off getaway beach',
+    'coding': 'programming developer computer software engineering code',
+    'hacker': 'hacking computer programmer coding security',
+    'knife': 'stabbing threatening weapon danger sharp',
+    'pirate': 'arrr sailor ship treasure nautical',
+    'wizard': 'magic magical sorcerer spell enchant',
+    'detective': 'investigating mystery sherlock searching clue',
+    'cowboy': 'western yeehaw rodeo horse ranch',
+    'ninja': 'stealth warrior martial arts sneaky fast',
+    'king': 'royal crown royalty ruler monarch',
+    'crown': 'royal king queen royalty ruler',
+    'chef': 'cooking kitchen food culinary restaurant',
+    'rain': 'rainy weather storm gloomy wet',
+    'snow': 'snowy winter cold freezing ice',
+    'pog': 'pogchamp amazing incredible surprised excited hype',
+    'sus': 'suspicious suspect among us sketchy fishy',
+    'yay': 'hooray celebration excited happy woohoo',
+    'nope': 'no way refuse reject decline absolutely not',
+    'facepalm': 'frustrated disappointed embarrassed oh no cringe',
+    'shh': 'quiet silence hush secret whisper',
+    'bonk': 'hit smack bonked horny jail',
+    'vibe': 'vibing mood chill relaxed feeling good',
+    'flex': 'showing off strong muscles bragging',
+    'rip': 'rest in peace dead gone farewell',
+    'stonks': 'stocks investing market money finance gains',
+    'fomo': 'fear of missing out jealous envy left out',
+    'jomo': 'joy of missing out content peaceful staying in',
+    'wholesome': 'sweet cute heartwarming pure good',
+    'cute': 'adorable sweet precious lovely',
+    'comfy': 'comfortable cozy snug warm relaxed',
+    'blush': 'blushing shy embarrassed flattered',
+    'awkward': 'uncomfortable cringe uneasy weird',
+    'disappointed': 'let down unhappy frustrated unsatisfied',
+    'regret': 'regretful sorry wish mistake',
+    'doubt': 'doubtful skeptical uncertain unsure questioning',
+    'existential': 'crisis meaning purpose philosophy dread',
+    'meltdown': 'breakdown crisis losing it overwhelmed freaking out',
+    'breakdown': 'meltdown crisis overwhelmed falling apart',
+    'mindblown': 'mind blown amazed shocked astonished incredible wow',
+    'disguise': 'undercover hidden incognito pretending',
+    'shipping': 'ship deploy release send out deliver',
+    'shipit': 'ship it deploy release ready to go launch',
+  };
+
+  const lowerD = d.toLowerCase();
+  for (const [key, synonyms] of Object.entries(synonymMap)) {
+    const regex = new RegExp('\\b' + key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+    if (regex.test(lowerD)) {
+      d += ' ' + synonyms;
+    }
+  }
+
+  return d;
+}
+
+function fileToEmojiName(filename) {
+  return filename
+    .replace(/\.(png|gif|jpg)$/, '')
+    .replace(/[_]+/g, '-');
+}
+
+// ============ IndexedDB Cache ============
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains('embeddings')) {
+        db.createObjectStore('embeddings');
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function getCachedEmbeddings() {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('embeddings', 'readonly');
+      const store = tx.objectStore('embeddings');
+      const req = store.get('all');
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function setCachedEmbeddings(data) {
+  try {
+    const db = await openDB();
+    const tx = db.transaction('embeddings', 'readwrite');
+    const store = tx.objectStore('embeddings');
+    store.put(data, 'all');
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = resolve;
+      tx.onerror = reject;
+    });
+  } catch (e) {
+    console.warn('Failed to cache embeddings:', e);
+  }
+}
+
+// ============ Cosine Similarity ============
+function cosineSimilarity(a, b) {
+  let dot = 0, normA = 0, normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+// ============ Negation Rewriting ============
+const ANTONYMS = {
+  'good': 'bad terrible awful unpleasant',
+  'great': 'terrible awful disappointing horrible',
+  'happy': 'unhappy sad miserable upset depressed',
+  'fun': 'boring miserable dull tedious unpleasant',
+  'funny': 'unfunny annoying unamused serious',
+  'excited': 'bored uninterested disappointed unenthusiastic',
+  'calm': 'anxious stressed panicking agitated',
+  'well': 'sick unwell poorly terrible',
+  'fine': 'bad upset struggling terrible',
+  'nice': 'mean rude terrible unpleasant',
+  'cool': 'uncool lame awkward embarrassing',
+  'safe': 'unsafe dangerous threatened scared',
+  'sure': 'unsure uncertain doubtful hesitant',
+  'okay': 'upset bad struggling troubled',
+  'ok': 'upset bad struggling troubled',
+  'ready': 'unprepared hesitant overwhelmed anxious',
+  'impressed': 'unimpressed disappointed underwhelmed',
+  'amused': 'unamused annoyed irritated bored',
+  'feeling it': 'not in the mood reluctant unmotivated',
+  'having a good time': 'having a bad time miserable suffering unhappy struggling',
+  'having fun': 'having a bad time bored miserable suffering',
+  'in the mood': 'not in the mood reluctant unwilling',
+  'feeling good': 'feeling bad upset sick terrible',
+  'doing well': 'doing badly struggling suffering having a bad time',
+  'doing great': 'doing terribly struggling suffering miserable',
+  'doing okay': 'doing badly struggling having a hard time',
+};
+
+const NEG_WORDS = /\b(not|no|don'?t|can'?t|won'?t|isn'?t|aren'?t|wasn'?t|weren'?t|couldn'?t|shouldn'?t|wouldn'?t|never|barely|hardly|ain'?t)\b/i;
+
+function rewriteNegation(query) {
+  const lower = query.toLowerCase().trim();
+  const phraseKeys = Object.keys(ANTONYMS).filter(k => k.includes(' ')).sort((a, b) => b.length - a.length);
+  for (const phrase of phraseKeys) {
+    const negPattern = new RegExp(
+      NEG_WORDS.source + '\\s+' + phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+      'i'
+    );
+    if (negPattern.test(lower)) {
+      return lower.replace(negPattern, ANTONYMS[phrase]);
+    }
+  }
+  const singlePattern = new RegExp(
+    NEG_WORDS.source + '\\s+(\\w+)',
+    'gi'
+  );
+  let match;
+  while ((match = singlePattern.exec(lower)) !== null) {
+    const word = match[2].toLowerCase();
+    if (ANTONYMS[word]) {
+      return lower.replace(match[0], ANTONYMS[word]);
+    }
+  }
+  if (NEG_WORDS.test(lower)) {
+    return query + ' — unhappy upset frustrated struggling negative';
+  }
+  return query;
+}
+
+const POSITIVE_MOODS = new Set(['celebratory', 'funny', 'cool', 'grateful', 'love', 'greeting', 'chill', 'surprise']);
+const NEGATIVE_MOODS = new Set(['sad', 'angry', 'anxious', 'tired', 'scared', 'disapproval']);
+
+// ============ Sentence Chunking ============
+function chunkSentence(text) {
+  // Step 1: Split on punctuation boundaries
+  let chunks = text.split(/\s*[,;:]\s*|\s*—\s*|\s*\.\.\.\s*|\s*–\s*/).filter(s => s.trim());
+
+  // Step 2: Split on conjunctions
+  const conjunctions = /\b(and|but|so|then|because|or|yet|while|when|since|although)\b/i;
+  let expanded = [];
+  for (const chunk of chunks) {
+    const words = chunk.trim().split(/\s+/);
+    if (words.length > 4) {
+      // Try splitting on conjunctions
+      const parts = chunk.trim().split(conjunctions);
+      // parts will be [before, conjunction, after, conjunction, after, ...]
+      // Merge conjunctions with the following part
+      let merged = [];
+      for (let i = 0; i < parts.length; i++) {
+        const p = parts[i].trim();
+        if (!p) continue;
+        if (conjunctions.test(p) && merged.length > 0) {
+          // This is a conjunction - attach to next part if exists
+          if (i + 1 < parts.length && parts[i + 1].trim()) {
+            merged.push(p + ' ' + parts[i + 1].trim());
+            i++; // skip next
+          }
+          // Otherwise just drop the lone conjunction
+        } else {
+          merged.push(p);
+        }
+      }
+      expanded.push(...merged);
+    } else {
+      expanded.push(chunk.trim());
+    }
+  }
+
+  // Step 3: Split any chunk > 10 words at a midpoint preposition/article
+  const splitWords = /\b(in|on|at|to|for|with|from|by|of|the|a|an|that|this|into|about|over|after|before)\b/i;
+  let final = [];
+  for (const chunk of expanded) {
+    const words = chunk.trim().split(/\s+/);
+    if (words.length > 10) {
+      // Find the split word closest to the midpoint
+      const mid = Math.floor(words.length / 2);
+      let bestIdx = -1;
+      let bestDist = Infinity;
+      for (let i = 2; i < words.length - 2; i++) {
+        if (splitWords.test(words[i])) {
+          const dist = Math.abs(i - mid);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestIdx = i;
+          }
+        }
+      }
+      if (bestIdx > 0) {
+        final.push(words.slice(0, bestIdx).join(' '));
+        final.push(words.slice(bestIdx).join(' '));
+      } else {
+        // No good split point, just split at midpoint
+        final.push(words.slice(0, mid).join(' '));
+        final.push(words.slice(mid).join(' '));
+      }
+    } else {
+      final.push(chunk.trim());
+    }
+  }
+
+  return final.filter(s => s.trim().length > 0);
+}
+
+// ============ UI Helpers ============
+const progressBar = document.getElementById('progress-bar');
+const progressTitle = document.getElementById('progress-title');
+const progressDesc = document.getElementById('progress-desc');
+const progressLabel = document.getElementById('progress-label');
+const progressSection = document.getElementById('progress-section');
+const inputSection = document.getElementById('input-section');
+const sentenceInput = document.getElementById('sentence-input');
+const errorMsg = document.getElementById('error-msg');
+const visualOutput = document.getElementById('visual-output');
+const copyBox = document.getElementById('copy-box');
+const outputSection = document.getElementById('output-section');
+const emptyState = document.getElementById('empty-state');
+const processingEl = document.getElementById('processing');
+const buildBtn = document.getElementById('build-btn');
+
+function setProgress(pct, label) {
+  progressBar.style.width = pct + '%';
+  if (label) progressLabel.textContent = label;
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+function showError(msg) {
+  errorMsg.textContent = msg;
+  errorMsg.style.display = 'block';
+  setTimeout(() => { errorMsg.style.display = 'none'; }, 5000);
+}
+
+function showInput() {
+  progressSection.style.display = 'none';
+  inputSection.style.display = 'block';
+  sentenceInput.focus();
+}
+
+function copyToClipboard() {
+  const text = copyBox.value;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('Copied to clipboard!');
+  }).catch(() => {
+    // Fallback
+    copyBox.select();
+    document.execCommand('copy');
+    showToast('Copied to clipboard!');
+  });
+}
+
+// Expose to onclick
+window.processAndRender = processAndRender;
+window.copyToClipboard = copyToClipboard;
+
+// ============ Main State ============
+let pipe = null;
+let descriptionEmbeddings = null;
+let moodEmbeddings = null;
+let bufoMoodProfiles = null;
+const descriptions = BUFO_FILES.map(fileToDescription);
+const rawNames = BUFO_FILES.map(f =>
+  f.replace(/\.(png|gif|jpg)$/, '').replace(/[_-]+/g, ' ').toLowerCase()
+);
+
+// Current results for cycling
+let currentChunks = [];     // string[]
+let currentMatches = [];    // { file, score }[][] — top-n per chunk
+let currentIndices = [];    // number[] — which match is selected per chunk
+
+async function computeMoodProfiles() {
+  const moodNames = Object.keys(MOODS);
+  const moodDescs = moodNames.map(k => MOODS[k].desc);
+  const output = await pipe(moodDescs, { pooling: 'mean', normalize: true });
+  moodEmbeddings = moodNames.map((name, i) => ({
+    name,
+    emoji: MOODS[name].emoji,
+    emb: new Float32Array(output[i].data),
+  }));
+  bufoMoodProfiles = descriptionEmbeddings.map(bufoEmb => {
+    const profile = new Float32Array(moodNames.length);
+    for (let m = 0; m < moodEmbeddings.length; m++) {
+      profile[m] = Math.max(0, cosineSimilarity(bufoEmb, moodEmbeddings[m].emb));
+    }
+    let norm = 0;
+    for (let m = 0; m < profile.length; m++) norm += profile[m] * profile[m];
+    norm = Math.sqrt(norm);
+    if (norm > 0) for (let m = 0; m < profile.length; m++) profile[m] /= norm;
+    return profile;
+  });
+}
+
+function findTopBufos(chunkEmb, n = 5) {
+  const isNeg = false; // negation already rewritten before embedding
+  const queryMoodProfile = new Float32Array(moodEmbeddings.length);
+  for (let m = 0; m < moodEmbeddings.length; m++) {
+    queryMoodProfile[m] = Math.max(0, cosineSimilarity(chunkEmb, moodEmbeddings[m].emb));
+  }
+  let norm = 0;
+  for (let m = 0; m < queryMoodProfile.length; m++) norm += queryMoodProfile[m] * queryMoodProfile[m];
+  norm = Math.sqrt(norm);
+  if (norm > 0) for (let m = 0; m < queryMoodProfile.length; m++) queryMoodProfile[m] /= norm;
+
+  const scored = descriptionEmbeddings.map((emb, i) => {
+    const semantic = cosineSimilarity(chunkEmb, emb);
+    const moodSim = cosineSimilarity(queryMoodProfile, bufoMoodProfiles[i]);
+    return {
+      file: BUFO_FILES[i],
+      score: semantic * 0.65 + moodSim * 0.35,
+    };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, n);
+}
+
+function renderOutput() {
+  visualOutput.innerHTML = '';
+
+  for (let i = 0; i < currentChunks.length; i++) {
+    // Add chunk bubble
+    const bubble = document.createElement('span');
+    bubble.className = 'chunk-bubble';
+    bubble.textContent = currentChunks[i];
+    visualOutput.appendChild(bubble);
+
+    // Add bufo slot
+    const match = currentMatches[i][currentIndices[i]];
+    const slot = document.createElement('div');
+    slot.className = 'bufo-slot';
+    slot.title = `Click to cycle (${currentIndices[i] + 1}/${currentMatches[i].length})`;
+
+    const img = document.createElement('img');
+    img.src = IMG_BASE + match.file;
+    img.alt = fileToEmojiName(match.file);
+    img.loading = 'lazy';
+    slot.appendChild(img);
+
+    const label = document.createElement('div');
+    label.className = 'bufo-label';
+    label.textContent = ':' + fileToEmojiName(match.file) + ':';
+    slot.appendChild(label);
+
+    const hint = document.createElement('div');
+    hint.className = 'cycle-hint';
+    hint.textContent = '↻';
+    slot.appendChild(hint);
+
+    // Click to cycle
+    const idx = i;
+    slot.addEventListener('click', () => {
+      currentIndices[idx] = (currentIndices[idx] + 1) % currentMatches[idx].length;
+      renderOutput();
+    });
+
+    visualOutput.appendChild(slot);
+  }
+
+  // Build copyable text
+  let slackText = '';
+  for (let i = 0; i < currentChunks.length; i++) {
+    const match = currentMatches[i][currentIndices[i]];
+    const emojiName = fileToEmojiName(match.file);
+    slackText += currentChunks[i] + ' :' + emojiName + ': ';
+  }
+  copyBox.value = slackText.trim();
+
+  // Auto-resize copy box
+  copyBox.style.height = 'auto';
+  copyBox.style.height = copyBox.scrollHeight + 'px';
+}
+
+async function processAndRender() {
+  if (!pipe || !descriptionEmbeddings || !bufoMoodProfiles) return;
+
+  const text = sentenceInput.value.trim();
+  if (!text) {
+    showError('Please enter a sentence first!');
+    return;
+  }
+
+  // Show processing state
+  buildBtn.disabled = true;
+  processingEl.classList.add('active');
+  emptyState.style.display = 'none';
+  outputSection.style.display = 'none';
+
+  try {
+    // Chunk the sentence
+    currentChunks = chunkSentence(text);
+    if (currentChunks.length === 0) {
+      currentChunks = [text];
+    }
+
+    // Apply negation rewriting to each chunk before embedding
+    const rewrittenChunks = currentChunks.map(rewriteNegation);
+
+    // Embed all chunks in one batch
+    const output = await pipe(rewrittenChunks, { pooling: 'mean', normalize: true });
+    const chunkEmbeddings = rewrittenChunks.map((_, i) => new Float32Array(output[i].data));
+
+    // Find top bufos for each chunk
+    currentMatches = chunkEmbeddings.map(emb => findTopBufos(emb, 5));
+    currentIndices = currentChunks.map(() => 0);
+
+    // Show output
+    processingEl.classList.remove('active');
+    outputSection.style.display = 'block';
+    renderOutput();
+
+  } catch (err) {
+    console.error('Processing error:', err);
+    showError('Processing failed: ' + err.message);
+    processingEl.classList.remove('active');
+    emptyState.style.display = 'block';
+  } finally {
+    buildBtn.disabled = false;
+  }
+}
+
+// Handle Enter key in textarea (Shift+Enter for newline, Enter to submit)
+sentenceInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    processAndRender();
+  }
+});
+
+// ============ Init ============
+async function init() {
+  try {
+    progressTitle.textContent = 'Loading AI Model...';
+    progressDesc.textContent = 'Downloading sentence embedding model (~23MB, cached after first load)';
+    setProgress(5, 'Importing Transformers.js...');
+
+    const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.4.1');
+
+    setProgress(10, 'Loading model (this may take a moment)...');
+
+    pipe = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+      progress_callback: (progress) => {
+        if (progress.status === 'downloading' || progress.status === 'progress') {
+          const pct = progress.progress ? Math.round(10 + progress.progress * 0.4) : 10;
+          setProgress(pct, `Downloading model: ${progress.file || ''}${progress.progress ? ' (' + Math.round(progress.progress) + '%)' : ''}`);
+        } else if (progress.status === 'ready') {
+          setProgress(50, 'Model loaded!');
+        }
+      }
+    });
+
+    setProgress(55, 'Checking for cached embeddings...');
+    const cached = await getCachedEmbeddings();
+
+    if (cached && cached.length === BUFO_FILES.length) {
+      descriptionEmbeddings = cached.map(arr => new Float32Array(arr));
+      setProgress(95, 'Computing mood profiles...');
+      await computeMoodProfiles();
+      setProgress(100, 'Loaded from cache!');
+      showInput();
+      return;
+    }
+
+    progressTitle.textContent = 'Computing Embeddings...';
+    progressDesc.textContent = 'Processing 1,669 bufo descriptions (one-time, ~30-60s)';
+    descriptionEmbeddings = [];
+
+    for (let i = 0; i < descriptions.length; i += BATCH_SIZE) {
+      const batch = descriptions.slice(i, i + BATCH_SIZE);
+      const output = await pipe(batch, { pooling: 'mean', normalize: true });
+
+      for (let j = 0; j < batch.length; j++) {
+        descriptionEmbeddings.push(new Float32Array(output[j].data));
+      }
+
+      const progress = Math.round(55 + ((i + batch.length) / descriptions.length) * 38);
+      setProgress(progress, `Embedding descriptions: ${Math.min(i + BATCH_SIZE, descriptions.length)} / ${descriptions.length}`);
+    }
+
+    setProgress(94, 'Caching embeddings...');
+    await setCachedEmbeddings(descriptionEmbeddings.map(e => Array.from(e)));
+
+    setProgress(96, 'Computing mood profiles...');
+    await computeMoodProfiles();
+
+    setProgress(100, 'Ready!');
+    showInput();
+
+  } catch (err) {
+    console.error('Init error:', err);
+    progressTitle.textContent = 'Error Loading Model';
+    progressDesc.textContent = err.message;
+    progressLabel.textContent = 'Try refreshing the page or using Chrome/Edge with WASM support.';
+  }
+}
+
+init();
+</script>
+</body>
+</html>
